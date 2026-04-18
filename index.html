@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VetStudy — Portail Études Vétérinaires</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a26;
+      --accent: #7c6af7; --accent2: #4ecdc4; --accent3: #f7c06a;
+      --text: #f0eeff; --muted: #7a7a9a; --border: rgba(255,255,255,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    body::before {
+      content: ''; position: fixed; top: -200px; left: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(124,106,247,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: ''; position: fixed; bottom: -200px; right: -200px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(78,205,196,0.08) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    header {
+      position: relative; z-index: 10;
+      padding: 1.2rem 2.5rem;
+      display: flex; align-items: center;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px); background: rgba(10,10,15,0.8);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; }
+    .logo-text span { color: var(--accent); }
+    .breadcrumb {
+      position: relative; z-index: 10; padding: 0.8rem 2.5rem;
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+      font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    .crumb {
+      background: rgba(124,106,247,0.15); color: var(--accent);
+      padding: 3px 12px; border-radius: 20px; cursor: pointer;
+      border: 1px solid rgba(124,106,247,0.3); font-size: 12px; transition: all 0.2s;
+    }
+    .crumb:hover { background: rgba(124,106,247,0.3); }
+    .main { position: relative; z-index: 10; padding: 2.5rem; }
+    .hero {
+      min-height: 80vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; gap: 2rem;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.3);
+      color: var(--accent); padding: 6px 16px; border-radius: 20px; font-size: 13px;
+    }
+    .hero-badge::before { content: '●'; font-size: 8px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .hero h1 {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1.1; letter-spacing: -0.03em;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero p { font-size: 1.1rem; color: var(--muted); max-width: 480px; line-height: 1.7; }
+    .hero-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 18px; padding: 2rem 2.5rem; cursor: pointer;
+      position: relative; overflow: hidden; max-width: 380px; width: 100%;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .hero-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, #7c6af7, #4ecdc4); opacity: 0; transition: opacity 0.25s;
+    }
+    .hero-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.18); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .hero-card:hover::before { opacity: 1; }
+    .hero-card .card-icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: rgba(124,106,247,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; margin-bottom: 1.2rem;
+    }
+    .hero-card h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem; }
+    .hero-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 1.2rem; }
+    .hero-card .enter-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; padding: 10px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 500; border: none; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .hero-card:hover .enter-btn { opacity: 0.9; }
+    .step-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .step-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.6rem; margin-bottom: 0.4rem; }
+    .step-sub { color: var(--muted); font-size: 14px; margin-bottom: 2rem; }
+    .nav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .nav-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.3rem 1.2rem; cursor: pointer;
+      display: flex; align-items: center; gap: 14px; transition: all 0.2s;
+    }
+    .nav-card:hover { background: var(--bg3); border-color: rgba(255,255,255,0.18); transform: translateY(-2px); }
+    .nav-card .ni {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; flex-shrink: 0;
+    }
+    .nav-card .nl { font-weight: 500; font-size: 14px; }
+    .nav-card .ns { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .ic-annee { background: rgba(124,106,247,0.15); }
+    .ic-sem   { background: rgba(78,205,196,0.15); }
+    .ic-res   { background: rgba(247,192,106,0.15); }
+    .ic-mod   { background: rgba(247,107,156,0.15); }
+    .no-res {
+      background: rgba(247,192,106,0.08); border: 1px solid rgba(247,192,106,0.2);
+      border-radius: 12px; padding: 1rem 1.4rem;
+      color: var(--accent3); font-size: 13px; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .result-wrap { max-width: 500px; margin: 0 auto; }
+    .result-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2.5rem; text-align: center;
+    }
+    .result-card .big { font-size: 3.5rem; margin-bottom: 1rem; }
+    .result-card h3 { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 1rem 0; }
+    .tag {
+      background: rgba(255,255,255,0.06); color: var(--muted);
+      font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+    }
+    .result-msg { font-size: 14px; color: var(--muted); line-height: 1.7; }
+    .fichiers-liste { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    .fichier-item {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.9rem 1.2rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .fichier-nom { font-size: 14px; font-weight: 500; }
+    .fichier-btn {
+      background: rgba(124,106,247,0.15); color: var(--accent);
+      border: 1px solid rgba(124,106,247,0.3); border-radius: 8px;
+      padding: 6px 14px; font-size: 13px; cursor: pointer;
+      text-decoration: none; white-space: nowrap; transition: all 0.2s;
+    }
+    .fichier-btn:hover { background: rgba(124,106,247,0.3); }
+    .btn-back {
+      margin-top: 1.5rem; padding: 10px 24px;
+      background: rgba(124,106,247,0.15); color: var(--accent);
+      border: 1px solid rgba(124,106,247,0.3); border-radius: 10px;
+      cursor: pointer; font-size: 14px; transition: all 0.2s; display: inline-block;
+    }
+    .btn-back:hover { background: rgba(124,106,247,0.3); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🐾</div>
+    <div class="logo-text">Vet<span>Study</span></div>
+  </div>
+</header>
+
+<div class="breadcrumb" id="breadcrumb"></div>
+<div class="main" id="app"></div>
+
+<script src="data.js"></script>
+<script>
+let state = { annee:null, semestre:null, ressource:null, module:null };
+
+function resetTo(step) {
+  const steps = ["annee","semestre","ressource","module"];
+  const idx = steps.indexOf(step);
+  steps.forEach((s,i) => { if(i >= idx) state[s] = null; });
+  render();
+}
+
+function goHome() {
+  state = { annee:null, semestre:null, ressource:null, module:null };
+  render();
+}
+
+function render() {
+  const bc = document.getElementById("breadcrumb");
+  const app = document.getElementById("app");
+
+  let crumbs = [];
+  if(state.annee)     crumbs.push({ label:state.annee.label,     step:"annee" });
+  if(state.semestre)  crumbs.push({ label:state.semestre.label,  step:"semestre" });
+  if(state.ressource) crumbs.push({ label:state.ressource.label, step:"ressource" });
+
+  bc.innerHTML = crumbs.length === 0
+    ? `<span>Accueil</span>`
+    : `<button class="crumb" onclick="goHome()">🏠 Accueil</button>` +
+      crumbs.map(c => `<span style="color:#444">›</span><button class="crumb" onclick="resetTo('${c.step}')">${c.label}</button>`).join("");
+
+  // ── ACCUEIL
+  if(!state.annee && !state.semestre && !state.ressource && !state.module) {
+    app.innerHTML = `
+      <div class="hero">
+        <div class="hero-badge">Plateforme de ressources pédagogiques</div>
+        <h1>Tes ressources,<br><span class="grad">organisées.</span></h1>
+        <p>Accède à tous tes cours, TD, TP et résumés classés par année, semestre et module.</p>
+        <div class="hero-card" onclick="goAnnees()">
+          <div class="card-icon">🐾</div>
+          <h3>Médecine Vétérinaire</h3>
+          <p>Cours, TD, TP et résumés pour toutes les années — organisés par semestre et module.</p>
+          <div class="enter-btn">Accéder →</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── ANNÉES
+  if(!state.annee) {
+    app.innerHTML = `
+      <div class="step-label">Médecine Vétérinaire</div>
+      <div class="step-title">Choisir l'année</div>
+      <div class="step-sub">Sélectionne ton année d'études</div>
+      <div class="nav-grid">
+        ${DATA.annees.map(a => `
+          <div class="nav-card" onclick='selectAnnee(${JSON.stringify(a)})'>
+            <div class="ni ic-annee">${a.icon}</div>
+            <div><div class="nl">${a.label}</div><div class="ns">${a.sub}</div></div>
+          </div>`).join("")}
+      </div>`;
+    return;
+  }
+
+  // ── SEMESTRES
+  if(!state.semestre) {
+    app.innerHTML = `
+      <div class="step-label">${state.annee.label}</div>
+      <div class="step-title">Choisir le semestre</div>
+      <div class="step-sub">Quel semestre tu cherches ?</div>
+      <div class="nav-grid">
+        ${DATA.semestres.map(s => `
+          <div class="nav-card" onclick='selectSemestre(${JSON.stringify(s)})'>
+            <div class="ni ic-sem">${s.icon}</div>
+            <div><div class="nl">${s.label}</div><div class="ns">${s.sub}</div></div>
+          </div>`).join("")}
+      </div>`;
+    return;
+  }
+
+  // ── RESSOURCES
+  if(!state.ressource) {
+    const key = state.annee.id + "-" + state.semestre.id;
+    const mods = DATA.modules[key];
+    app.innerHTML = `
+      <div class="step-label">${state.annee.label} · ${state.semestre.label}</div>
+      <div class="step-title">Type de ressource</div>
+      <div class="step-sub">Qu'est-ce que tu cherches ?</div>
+      <div class="nav-grid">
+        ${DATA.ressources.map(r => {
+          const list = mods ? mods[r.id] : [];
+          const count = list ? list.filter(m => m !== "À compléter").length : 0;
+          return `
+          <div class="nav-card" onclick='selectRessource(${JSON.stringify(r)})'>
+            <div class="ni ic-res">${r.icon}</div>
+            <div>
+              <div class="nl">${r.label}</div>
+              <div class="ns">${count > 0 ? count + ' module' + (count>1?'s':'') : 'Aucun module'}</div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+    return;
+  }
+
+  // ── MODULES
+  if(!state.module) {
+    const key = state.annee.id + "-" + state.semestre.id;
+    const mods = DATA.modules[key];
+    const list = mods ? mods[state.ressource.id] : [];
+    const filtered = list ? list.filter(m => m !== "À compléter") : [];
+
+    if(filtered.length === 0) {
+      app.innerHTML = `
+        <div class="step-label">${state.annee.label} · ${state.semestre.label} · ${state.ressource.label}</div>
+        <div class="step-title">Modules</div>
+        <div class="no-res">⚠️ Aucun module disponible pour ce type de ressource.</div>
+        <button class="btn-back" onclick="resetTo('ressource')">← Changer de type</button>`;
+      return;
+    }
+
+    app.innerHTML = `
+      <div class="step-label">${state.annee.label} · ${state.semestre.label} · ${state.ressource.label}</div>
+      <div class="step-title">Choisir le module</div>
+      <div class="step-sub">${filtered.length} module${filtered.length>1?'s':''} disponible${filtered.length>1?'s':''}</div>
+      <div class="nav-grid">
+        ${filtered.map(m => `
+          <div class="nav-card" onclick='selectModule("${m.replace(/"/g,'\\"').replace(/'/g,"\\'")}") '>
+            <div class="ni ic-mod">📚</div>
+            <div><div class="nl">${m}</div></div>
+          </div>`).join("")}
+      </div>`;
+    return;
+  }
+
+  // ── RÉSULTAT FINAL
+  const key = state.annee.id + "-" + state.semestre.id + "-" + state.ressource.id + "-" + state.module;
+  const fichiers = DATA.fichiers[key] || [];
+
+  app.innerHTML = `
+    <div class="result-wrap">
+      <div class="result-card">
+        <div class="big">${state.ressource.icon}</div>
+        <h3>${state.ressource.label} — ${state.module}</h3>
+        <div class="tags">
+          <span class="tag">${state.annee.label}</span>
+          <span class="tag">${state.semestre.label}</span>
+          <span class="tag">${state.ressource.label}</span>
+        </div>
+        ${fichiers.length > 0
+          ? `<div class="fichiers-liste">
+              ${fichiers.map(f => `
+                <div class="fichier-item">
+                  <span class="fichier-nom">📄 ${f.nom}</span>
+                  <a class="fichier-btn" href="${f.url}" target="_blank">Ouvrir</a>
+                </div>`).join("")}
+            </div>`
+          : `<p class="result-msg">Aucun fichier pour l'instant.<br>Les ressources seront ajoutées bientôt !</p>`
+        }
+        <button class="btn-back" onclick="resetTo('module')">← Changer de module</button>
+      </div>
+    </div>`;
+}
+
+function goAnnees()    { state.annee = null; state.semestre = null; state.ressource = null; state.module = null; state._showAnnees = true; render(); }
+function selectAnnee(a)    { state.annee = a; state._showAnnees = false; render(); }
+function selectSemestre(s) { state.semestre = s; render(); }
+function selectRessource(r){ state.ressource = r; render(); }
+function selectModule(m)   { state.module = m; render(); }
+
+// Petite correction pour goAnnees
+(function() {
+  const orig = render;
+  window.render = function() {
+    if(state._showAnnees && !state.annee) {
+      const bc = document.getElementById("breadcrumb");
+      const app = document.getElementById("app");
+      bc.innerHTML = `<button class="crumb" onclick="goHome()">🏠 Accueil</button>`;
+      app.innerHTML = `
+        <div class="step-label">Médecine Vétérinaire</div>
+        <div class="step-title">Choisir l'année</div>
+        <div class="step-sub">Sélectionne ton année d'études</div>
+        <div class="nav-grid">
+          ${DATA.annees.map(a => `
+            <div class="nav-card" onclick='selectAnnee(${JSON.stringify(a)})'>
+              <div class="ni ic-annee">${a.icon}</div>
+              <div><div class="nl">${a.label}</div><div class="ns">${a.sub}</div></div>
+            </div>`).join("")}
+        </div>`;
+      return;
+    }
+    orig();
+  };
+})();
+
+render();
+</script>
+</body>
+</html>
