@@ -27,13 +27,13 @@ const DATA = {
       cours:   ["Anatomie","Biochimie","Chimie","Cytologie","Génétique","Histologie","Zoologie"],
       td:      ["Biochimie","Chimie","Cytologie","Génétique"],
       tp:      ["Anatomie","Biochimie","Chimie","Histologie","Zoologie"],
-      resumes: ["Anatomie","Biochimie","Chimie","Cytologie","Génétique","Histologie","Zoologie"]
+      resumes: ["Biochimie","Cytologie","Histologie"]
     },
     "1a-s2": {
-      cours:   ["Anatomie","Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Ethnologie","Éthologie et bien-être","Français","Anglais"],
+      cours:   ["Anatomie","Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Ethnologie","Éthologie et bien-être","Physiologie","Français"],
       td:      ["Biochimie","Biophysique","Cytologie","Embryologie"],
       tp:      ["Anatomie","Biochimie","Éthologie et bien-être"],
-      resumes: ["Anatomie","Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Ethnologie","Éthologie et bien-être","Français","Anglais"]
+      resumes: ["Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Éthologie et bien-être"]
     },
     "2a-s1": {
       cours:   ["Alimentation","Amélioration génétique et biotechnologie (AGB)","Anatomie 2","Biostatistiques","Ethnologie spéciale","Immuno-vaccinologie","Physiologie 2","Physiologie de la reproduction"],
@@ -56,11 +56,5 @@ const DATA = {
     "6a-s1": { cours:["À compléter"], td:[], tp:[], resumes:["À compléter"] },
     "6a-s2": { cours:["À compléter"], td:[], tp:[], resumes:["À compléter"] },
   },
-
-  // ICI tu ajouteras tes fichiers plus tard, exemple :
-  // "1a-s1-cours-Anatomie": [
-  //   { nom: "Cours 1 - Introduction", url: "fichiers/anatomie_cours1.pdf" },
-  //   { nom: "Cours 2 - Os du crâne",  url: "fichiers/anatomie_cours2.pdf" },
-  // ]
   fichiers: {}
 };
