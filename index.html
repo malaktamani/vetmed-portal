@@ -97,9 +97,7 @@
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       color: white; padding: 10px 20px; border-radius: 10px;
       font-size: 14px; font-weight: 500; border: none; cursor: pointer;
-      transition: opacity 0.2s;
     }
-    .hero-card:hover .enter-btn { opacity: 0.9; }
     .step-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
     .step-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.6rem; margin-bottom: 0.4rem; }
     .step-sub { color: var(--muted); font-size: 14px; margin-bottom: 2rem; }
@@ -161,6 +159,7 @@
       cursor: pointer; font-size: 14px; transition: all 0.2s; display: inline-block;
     }
     .btn-back:hover { background: rgba(124,106,247,0.3); }
+    .loading { color: var(--muted); font-size: 14px; padding: 1rem 0; }
   </style>
 </head>
 <body>
@@ -177,22 +176,28 @@
 
 <script src="data.js"></script>
 <script>
-let state = { annee:null, semestre:null, ressource:null, module:null };
+let state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:false };
 
 function resetTo(step) {
   const steps = ["annee","semestre","ressource","module"];
   const idx = steps.indexOf(step);
   steps.forEach((s,i) => { if(i >= idx) state[s] = null; });
+  state._showAnnees = step === "annee" ? true : state._showAnnees;
   render();
 }
 
 function goHome() {
-  state = { annee:null, semestre:null, ressource:null, module:null };
+  state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:false };
+  render();
+}
+
+function goAnnees() {
+  state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:true };
   render();
 }
 
 function render() {
-  const bc = document.getElementById("breadcrumb");
+  const bc  = document.getElementById("breadcrumb");
   const app = document.getElementById("app");
 
   let crumbs = [];
@@ -200,13 +205,13 @@ function render() {
   if(state.semestre)  crumbs.push({ label:state.semestre.label,  step:"semestre" });
   if(state.ressource) crumbs.push({ label:state.ressource.label, step:"ressource" });
 
-  bc.innerHTML = crumbs.length === 0
+  bc.innerHTML = (!state._showAnnees && !state.annee)
     ? `<span>Accueil</span>`
     : `<button class="crumb" onclick="goHome()">🏠 Accueil</button>` +
       crumbs.map(c => `<span style="color:#444">›</span><button class="crumb" onclick="resetTo('${c.step}')">${c.label}</button>`).join("");
 
-  // ── ACCUEIL
-  if(!state.annee && !state.semestre && !state.ressource && !state.module) {
+  // ACCUEIL
+  if(!state._showAnnees && !state.annee) {
     app.innerHTML = `
       <div class="hero">
         <div class="hero-badge">Plateforme de ressources pédagogiques</div>
@@ -222,7 +227,7 @@ function render() {
     return;
   }
 
-  // ── ANNÉES
+  // ANNÉES
   if(!state.annee) {
     app.innerHTML = `
       <div class="step-label">Médecine Vétérinaire</div>
@@ -238,7 +243,7 @@ function render() {
     return;
   }
 
-  // ── SEMESTRES
+  // SEMESTRES
   if(!state.semestre) {
     app.innerHTML = `
       <div class="step-label">${state.annee.label}</div>
@@ -254,9 +259,9 @@ function render() {
     return;
   }
 
-  // ── RESSOURCES
+  // RESSOURCES
   if(!state.ressource) {
-    const key = state.annee.id + "-" + state.semestre.id;
+    const key  = state.annee.id + "-" + state.semestre.id;
     const mods = DATA.modules[key];
     app.innerHTML = `
       <div class="step-label">${state.annee.label} · ${state.semestre.label}</div>
@@ -264,7 +269,7 @@ function render() {
       <div class="step-sub">Qu'est-ce que tu cherches ?</div>
       <div class="nav-grid">
         ${DATA.ressources.map(r => {
-          const list = mods ? mods[r.id] : [];
+          const list  = mods ? mods[r.id] : [];
           const count = list ? list.filter(m => m !== "À compléter").length : 0;
           return `
           <div class="nav-card" onclick='selectRessource(${JSON.stringify(r)})'>
@@ -279,11 +284,11 @@ function render() {
     return;
   }
 
-  // ── MODULES
+  // MODULES
   if(!state.module) {
-    const key = state.annee.id + "-" + state.semestre.id;
-    const mods = DATA.modules[key];
-    const list = mods ? mods[state.ressource.id] : [];
+    const key      = state.annee.id + "-" + state.semestre.id;
+    const mods     = DATA.modules[key];
+    const list     = mods ? mods[state.ressource.id] : [];
     const filtered = list ? list.filter(m => m !== "À compléter") : [];
 
     if(filtered.length === 0) {
@@ -309,10 +314,7 @@ function render() {
     return;
   }
 
-  // ── RÉSULTAT FINAL
-  const key = state.annee.id + "-" + state.semestre.id + "-" + state.ressource.id + "-" + state.module;
-  const fichiers = DATA.fichiers[key] || [];
-
+  // RÉSULTAT FINAL
   app.innerHTML = `
     <div class="result-wrap">
       <div class="result-card">
@@ -323,51 +325,37 @@ function render() {
           <span class="tag">${state.semestre.label}</span>
           <span class="tag">${state.ressource.label}</span>
         </div>
-        ${fichiers.length > 0
-          ? `<div class="fichiers-liste">
-              ${fichiers.map(f => `
-                <div class="fichier-item">
-                  <span class="fichier-nom">📄 ${f.nom}</span>
-                  <a class="fichier-btn" href="${f.url}" target="_blank">Ouvrir</a>
-                </div>`).join("")}
-            </div>`
-          : `<p class="result-msg">Aucun fichier pour l'instant.<br>Les ressources seront ajoutées bientôt !</p>`
-        }
+        <div id="fichiers-liste"><p class="loading">Chargement...</p></div>
         <button class="btn-back" onclick="resetTo('module')">← Changer de module</button>
       </div>
     </div>`;
+
+  // Charger les fichiers depuis le serveur
+  fetch(`/api/fichiers?annee=${state.annee.id}&semestre=${state.semestre.id}&ressource=${state.ressource.id}&module=${encodeURIComponent(state.module)}`)
+    .then(r => r.json())
+    .then(data => {
+      const liste = document.getElementById('fichiers-liste');
+      if(!liste) return;
+      if(data.length === 0) {
+        liste.innerHTML = '<p class="result-msg">Aucun fichier pour l\'instant.<br>Les ressources seront ajoutées bientôt !</p>';
+      } else {
+        liste.innerHTML = `<div class="fichiers-liste">${data.map(f => `
+          <div class="fichier-item">
+            <span class="fichier-nom">📄 ${f.nom}</span>
+            <a class="fichier-btn" href="${f.url}" target="_blank">Ouvrir</a>
+          </div>`).join('')}</div>`;
+      }
+    })
+    .catch(() => {
+      const liste = document.getElementById('fichiers-liste');
+      if(liste) liste.innerHTML = '<p class="result-msg">Aucun fichier pour l\'instant.</p>';
+    });
 }
 
-function goAnnees()    { state.annee = null; state.semestre = null; state.ressource = null; state.module = null; state._showAnnees = true; render(); }
-function selectAnnee(a)    { state.annee = a; state._showAnnees = false; render(); }
-function selectSemestre(s) { state.semestre = s; render(); }
-function selectRessource(r){ state.ressource = r; render(); }
-function selectModule(m)   { state.module = m; render(); }
-
-// Petite correction pour goAnnees
-(function() {
-  const orig = render;
-  window.render = function() {
-    if(state._showAnnees && !state.annee) {
-      const bc = document.getElementById("breadcrumb");
-      const app = document.getElementById("app");
-      bc.innerHTML = `<button class="crumb" onclick="goHome()">🏠 Accueil</button>`;
-      app.innerHTML = `
-        <div class="step-label">Médecine Vétérinaire</div>
-        <div class="step-title">Choisir l'année</div>
-        <div class="step-sub">Sélectionne ton année d'études</div>
-        <div class="nav-grid">
-          ${DATA.annees.map(a => `
-            <div class="nav-card" onclick='selectAnnee(${JSON.stringify(a)})'>
-              <div class="ni ic-annee">${a.icon}</div>
-              <div><div class="nl">${a.label}</div><div class="ns">${a.sub}</div></div>
-            </div>`).join("")}
-        </div>`;
-      return;
-    }
-    orig();
-  };
-})();
+function selectAnnee(a)     { state.annee = a; state._showAnnees = false; render(); }
+function selectSemestre(s)  { state.semestre = s; render(); }
+function selectRessource(r) { state.ressource = r; render(); }
+function selectModule(m)    { state.module = m; render(); }
 
 render();
 </script>
