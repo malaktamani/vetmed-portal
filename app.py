@@ -125,6 +125,9 @@ def get_all_fichiers():
         'nom': f.nom, 'url': f.url
     } for f in fichiers])
 
+with app.app_context():
+    db.create_all()
+    
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
