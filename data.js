@@ -27,7 +27,7 @@ const DATA = {
       cours:   ["Anatomie","Biochimie","Chimie","Cytologie","Génétique","Histologie","Zoologie"],
       td:      ["Biochimie","Chimie","Cytologie","Génétique"],
       tp:      ["Anatomie","Biochimie","Chimie","Histologie","Zoologie"],
-      resumes: ["Biochimie","Cytologie","Histologie"]
+      resumes: ["Cytologie","Histologie"]
     },
     "1a-s2": {
       cours:   ["Anatomie","Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Ethnologie","Éthologie et bien-être","Physiologie","Français"],
