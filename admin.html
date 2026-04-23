@@ -14,11 +14,7 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-    /* LOGIN */
-    .login-wrap {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    }
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .login-card {
       background: var(--bg2); border: 1px solid var(--border);
       border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 380px; text-align: center;
@@ -33,17 +29,10 @@
       transition: border-color 0.2s;
     }
     .input:focus { border-color: var(--accent); }
-    .btn {
-      width: 100%; padding: 12px; border-radius: 10px; border: none;
-      font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s;
-    }
+    .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
     .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
     .btn-primary:hover { opacity: 0.9; }
-    .btn-danger { background: rgba(247,117,106,0.15); color: var(--danger); border: 1px solid rgba(247,117,106,0.3); }
-    .btn-danger:hover { background: rgba(247,117,106,0.3); }
     .error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; }
-
-    /* ADMIN PANEL */
     .admin-panel { display: none; }
     header {
       padding: 1.2rem 2rem; border-bottom: 1px solid var(--border);
@@ -52,37 +41,15 @@
       position: sticky; top: 0; z-index: 100;
     }
     .logo { display: flex; align-items: center; gap: 10px; }
-    .logo-icon {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex; align-items: center; justify-content: center; font-size: 1rem;
-    }
+    .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
     .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; }
     .logo-text span { color: var(--accent); }
-    .admin-badge {
-      background: rgba(247,192,106,0.15); color: var(--accent3);
-      border: 1px solid rgba(247,192,106,0.3);
-      padding: 4px 12px; border-radius: 20px; font-size: 12px;
-    }
-    .logout-btn {
-      background: rgba(247,117,106,0.1); color: var(--danger);
-      border: 1px solid rgba(247,117,106,0.2); padding: 6px 16px;
-      border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s;
-    }
+    .admin-badge { background: rgba(247,192,106,0.15); color: var(--accent3); border: 1px solid rgba(247,192,106,0.3); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+    .logout-btn { background: rgba(247,117,106,0.1); color: var(--danger); border: 1px solid rgba(247,117,106,0.2); padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
     .logout-btn:hover { background: rgba(247,117,106,0.25); }
-
     .content { padding: 2rem; max-width: 900px; margin: 0 auto; }
-
-    /* UPLOAD FORM */
-    .section-title {
-      font-family: 'Syne', sans-serif; font-weight: 700;
-      font-size: 1.2rem; margin-bottom: 1.2rem;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .upload-card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 16px; padding: 1.8rem; margin-bottom: 2rem;
-    }
+    .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.2rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 8px; }
+    .upload-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; margin-bottom: 2rem; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -95,24 +62,40 @@
     .file-zone:hover { border-color: var(--accent); }
     .file-zone.has-file { border-color: var(--success); }
     .file-zone p { color: var(--muted); font-size: 14px; }
-    .file-zone .file-name { color: var(--success); font-size: 14px; font-weight: 500; margin-top: 8px; }
     #fileInput { display: none; }
-    .nom-input { margin-bottom: 12px; }
+
+    /* FILE QUEUE */
+    .queue { margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .queue-item {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.8rem 1rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .queue-item .fname { flex: 1; font-size: 13px; }
+    .queue-item input.input { margin: 0; padding: 8px 12px; font-size: 13px; }
+    .queue-item .remove-btn {
+      background: rgba(247,117,106,0.1); color: var(--danger);
+      border: 1px solid rgba(247,117,106,0.2); padding: 5px 10px;
+      border-radius: 8px; cursor: pointer; font-size: 12px; white-space: nowrap;
+    }
+    .queue-item .status { font-size: 12px; min-width: 80px; text-align: right; }
+    .status-pending { color: var(--muted); }
+    .status-uploading { color: var(--accent3); }
+    .status-done { color: var(--success); }
+    .status-error { color: var(--danger); }
+
     .upload-btn {
       width: 100%; padding: 12px; border-radius: 10px; border: none;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: white; font-size: 14px; font-weight: 500; cursor: pointer;
-      transition: opacity 0.2s;
+      color: white; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s;
     }
     .upload-btn:hover { opacity: 0.9; }
     .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .progress-bar-wrap { background: var(--bg3); border-radius: 10px; height: 8px; margin: 12px 0; overflow: hidden; display: none; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 10px; transition: width 0.3s; width: 0%; }
     .success-msg { color: var(--success); font-size: 13px; margin-top: 8px; text-align: center; }
 
-    /* FICHIERS LIST */
-    .fichiers-card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 16px; padding: 1.8rem;
-    }
+    .fichiers-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; }
     .filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.2rem; }
     .fichier-item {
       background: var(--bg3); border: 1px solid var(--border);
@@ -123,19 +106,13 @@
     .fichier-info { flex: 1; }
     .fichier-nom { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
     .fichier-meta { font-size: 12px; color: var(--muted); }
-    .delete-btn {
-      background: rgba(247,117,106,0.1); color: var(--danger);
-      border: 1px solid rgba(247,117,106,0.2); padding: 6px 14px;
-      border-radius: 8px; cursor: pointer; font-size: 13px;
-      transition: all 0.2s; white-space: nowrap;
-    }
+    .delete-btn { background: rgba(247,117,106,0.1); color: var(--danger); border: 1px solid rgba(247,117,106,0.2); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; white-space: nowrap; }
     .delete-btn:hover { background: rgba(247,117,106,0.3); }
     .empty-msg { color: var(--muted); font-size: 14px; text-align: center; padding: 2rem; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div class="login-wrap" id="loginWrap">
   <div class="login-card">
     <div class="icon">🔐</div>
@@ -147,7 +124,6 @@
   </div>
 </div>
 
-<!-- ADMIN PANEL -->
 <div class="admin-panel" id="adminPanel">
   <header>
     <div class="logo">
@@ -161,9 +137,7 @@
   </header>
 
   <div class="content">
-
-    <!-- UPLOAD -->
-    <div class="section-title">📤 Ajouter un fichier</div>
+    <div class="section-title">📤 Ajouter des fichiers</div>
     <div class="upload-card">
       <div class="form-grid">
         <div class="form-group">
@@ -199,22 +173,22 @@
         </div>
       </div>
 
-      <div class="form-group nom-input">
-        <label>Nom du fichier (affiché sur le site)</label>
-        <input class="input" type="text" id="nomFichier" placeholder="Ex: Unité 1 — Atomistique">
-      </div>
-
       <div class="file-zone" id="fileZone" onclick="document.getElementById('fileInput').click()">
-        <p>📁 Clique pour choisir un PDF</p>
-        <div class="file-name" id="fileName"></div>
+        <p>📁 Clique pour choisir un ou plusieurs PDF</p>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">Tu peux sélectionner plusieurs fichiers à la fois !</p>
       </div>
-      <input type="file" id="fileInput" accept=".pdf" onchange="fileSelected(this)">
+      <input type="file" id="fileInput" accept=".pdf" multiple onchange="filesSelected(this)">
 
-      <button class="upload-btn" onclick="uploadFichier()">⬆️ Uploader le fichier</button>
+      <div class="queue" id="fileQueue"></div>
+
+      <div class="progress-bar-wrap" id="progressWrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <button class="upload-btn" id="uploadBtn" onclick="uploadAll()" style="display:none">⬆️ Uploader tous les fichiers</button>
       <div class="success-msg" id="uploadMsg"></div>
     </div>
 
-    <!-- LISTE FICHIERS -->
     <div class="section-title">📂 Fichiers sur le site</div>
     <div class="fichiers-card">
       <div class="filter-grid">
@@ -243,17 +217,18 @@
       </div>
       <div id="fichiersList"></div>
     </div>
-
   </div>
 </div>
 
 <script>
 const MODULES = {
-  "1a-s1": { cours:["Anatomie","Biochimie","Chimie","Cytologie","Génétique","Histologie","Zoologie"], td:["Biochimie","Chimie","Cytologie","Génétique"], tp:["Anatomie","Biochimie","Chimie","Histologie","Zoologie"], resumes:["Biochimie","Cytologie","Histologie"] },
-  "1a-s2": { cours:["Anatomie","Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Ethnologie","Éthologie et bien-être","Physiologie","Français"], td:["Biochimie","Biophysique","Cytologie","Embryologie"], tp:["Anatomie","Biochimie","Éthologie et bien-être"], resumes:["Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Éthologie et bien-être"] },
-  "2a-s1": { cours:["Alimentation","AGB","Anatomie 2","Biostatistiques","Ethnologie spéciale","Immuno-vaccinologie","Physiologie 2","Physiologie de la reproduction"], td:["Alimentation","AGB","Biostatistiques","Immuno-vaccinologie","Physiologie 2","Physiologie de la reproduction"], tp:["Alimentation","Ethnologie spéciale"], resumes:["Alimentation","AGB","Anatomie 2","Biostatistiques","Ethnologie spéciale","Immuno-vaccinologie","Physiologie 2","Physiologie de la reproduction"] },
-  "2a-s2": { cours:["Alimentation","Anatomie 2","Anglais scientifique","Bactériologie générale","Bio-informatique","EPA","Histologie spéciale","Physiologie de la reproduction","Virologie générale"], td:["Alimentation","Physiologie de la reproduction","Virologie générale"], tp:["Bactériologie générale","EPA","Histologie spéciale"], resumes:["Alimentation","Anatomie 2","Anglais scientifique","Bactériologie générale","Bio-informatique","EPA","Histologie spéciale","Physiologie de la reproduction","Virologie générale"] },
+  "1a-s1": { cours:["Anatomie","Biochimie","Chimie","Cytologie","Génétique","Histologie","Zoologie"], td:["Biochimie","Chimie","Cytologie","Génétique"], tp:["Anatomie","Biochimie","Chimie","Histologie","Zoologie"], resumes:["Cytologie","Histologie"] },
+  "1a-s2": { cours:["Anatomie","Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Ethnologie","Éthologie et bien-être","Physiologie","Français"], td:["Biochimie","Biophysique","Cytologie","Embryologie","Physiologie"], tp:["Anatomie","Biochimie","Éthologie et bien-être"], resumes:["Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Éthologie et bien-être"] },
+  "2a-s1": { cours:["Alimentation","Amélioration génétique et biotechnologie (AGB)","Anatomie 2","Biostatistiques","Ethnologie spéciale","Immuno-vaccinologie","Physiologie 2","Physiologie de la reproduction"], td:["Alimentation","AGB","Biostatistiques","Immuno-vaccinologie","Physiologie 2","Physiologie de la reproduction"], tp:["Alimentation","Ethnologie spéciale"], resumes:["Alimentation","Amélioration génétique et biotechnologie (AGB)","Anatomie 2","Biostatistiques","Ethnologie spéciale","Immuno-vaccinologie","Physiologie 2","Physiologie de la reproduction"] },
+  "2a-s2": { cours:["Alimentation","Anatomie 2","Anglais scientifique","Bactériologie générale","Bio-informatique","Elevage et productions animales (EPA)","Histologie spéciale","Physiologie de la reproduction","Virologie générale"], td:["Alimentation","Physiologie de la reproduction","Virologie générale"], tp:["Bactériologie générale","EPA","Histologie spéciale"], resumes:["Alimentation","Anatomie 2","Anglais scientifique","Bactériologie générale","Bio-informatique","Elevage et productions animales (EPA)","Histologie spéciale","Physiologie de la reproduction","Virologie générale"] },
 };
+
+let fileQueue = [];
 
 function updateModules() {
   const key = document.getElementById('annee').value + '-' + document.getElementById('semestre').value;
@@ -263,29 +238,102 @@ function updateModules() {
   sel.innerHTML = mods.map(m => `<option value="${m}">${m}</option>`).join('') || '<option>À compléter</option>';
 }
 
-function fileSelected(input) {
-  const file = input.files[0];
-  if(file) {
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileZone').classList.add('has-file');
-    if(!document.getElementById('nomFichier').value) {
-      document.getElementById('nomFichier').value = file.name.replace('.pdf','');
+function filesSelected(input) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    if(!fileQueue.find(f => f.file.name === file.name)) {
+      fileQueue.push({ file, nom: file.name.replace('.pdf',''), status: 'pending' });
     }
+  });
+  renderQueue();
+  document.getElementById('uploadBtn').style.display = fileQueue.length ? 'block' : 'none';
+  input.value = '';
+}
+
+function renderQueue() {
+  const q = document.getElementById('fileQueue');
+  if(!fileQueue.length) { q.innerHTML = ''; return; }
+  q.innerHTML = fileQueue.map((item, i) => `
+    <div class="queue-item">
+      <span class="fname">📄 ${item.file.name}</span>
+      <input class="input" type="text" value="${item.nom}" placeholder="Nom affiché" onchange="fileQueue[${i}].nom = this.value" style="flex:1">
+      <span class="status status-${item.status}">${statusLabel(item.status)}</span>
+      ${item.status === 'pending' ? `<button class="remove-btn" onclick="removeFile(${i})">✕</button>` : ''}
+    </div>`).join('');
+}
+
+function statusLabel(s) {
+  if(s === 'pending') return '⏳ En attente';
+  if(s === 'uploading') return '⬆️ Upload...';
+  if(s === 'done') return '✅ Fait';
+  if(s === 'error') return '❌ Erreur';
+  return '';
+}
+
+function removeFile(i) {
+  fileQueue.splice(i, 1);
+  renderQueue();
+  document.getElementById('uploadBtn').style.display = fileQueue.length ? 'block' : 'none';
+}
+
+async function uploadAll() {
+  const pending = fileQueue.filter(f => f.status === 'pending');
+  if(!pending.length) return;
+
+  const btn = document.getElementById('uploadBtn');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressBar = document.getElementById('progressBar');
+  btn.disabled = true;
+  progressWrap.style.display = 'block';
+
+  let done = 0;
+  for(const item of pending) {
+    item.status = 'uploading';
+    renderQueue();
+
+    const formData = new FormData();
+    formData.append('annee',     document.getElementById('annee').value);
+    formData.append('semestre',  document.getElementById('semestre').value);
+    formData.append('ressource', document.getElementById('ressource').value);
+    formData.append('module',    document.getElementById('module').value);
+    formData.append('nom',       item.nom);
+    formData.append('fichier',   item.file);
+
+    try {
+      const res = await fetch('/api/admin/upload', { method:'POST', body: formData });
+      const data = await res.json();
+      item.status = data.success ? 'done' : 'error';
+    } catch(e) {
+      item.status = 'error';
+    }
+
+    done++;
+    progressBar.style.width = (done / pending.length * 100) + '%';
+    renderQueue();
   }
+
+  btn.disabled = false;
+  const allDone = fileQueue.every(f => f.status === 'done');
+  document.getElementById('uploadMsg').textContent = allDone ? '✅ Tous les fichiers uploadés !' : '⚠️ Certains fichiers ont échoué.';
+  setTimeout(() => {
+    document.getElementById('uploadMsg').textContent = '';
+    fileQueue = fileQueue.filter(f => f.status !== 'done');
+    renderQueue();
+    progressWrap.style.display = 'none';
+    progressBar.style.width = '0%';
+    document.getElementById('uploadBtn').style.display = fileQueue.length ? 'block' : 'none';
+    loadFichiers();
+  }, 3000);
 }
 
 async function login() {
   const pwd = document.getElementById('passwordInput').value;
-  const res = await fetch('/api/admin/login', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({password: pwd})
-  });
+  const res = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pwd}) });
   const data = await res.json();
   if(data.success) {
     document.getElementById('loginWrap').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
-    updateModules();
-    loadFichiers();
+    updateModules(); loadFichiers();
   } else {
     document.getElementById('loginError').textContent = 'Mot de passe incorrect !';
   }
@@ -298,62 +346,21 @@ async function logout() {
   document.getElementById('passwordInput').value = '';
 }
 
-async function uploadFichier() {
-  const file = document.getElementById('fileInput').files[0];
-  const nom = document.getElementById('nomFichier').value;
-  if(!file) { alert('Choisis un fichier !'); return; }
-  if(!nom)  { alert('Donne un nom au fichier !'); return; }
-
-  const formData = new FormData();
-  formData.append('annee',     document.getElementById('annee').value);
-  formData.append('semestre',  document.getElementById('semestre').value);
-  formData.append('ressource', document.getElementById('ressource').value);
-  formData.append('module',    document.getElementById('module').value);
-  formData.append('nom',       nom);
-  formData.append('fichier',   file);
-
-  const btn = document.querySelector('.upload-btn');
-  btn.disabled = true; btn.textContent = 'Upload en cours...';
-
-  const res = await fetch('/api/admin/upload', {method:'POST', body: formData});
-  const data = await res.json();
-
-  btn.disabled = false; btn.textContent = '⬆️ Uploader le fichier';
-
-  if(data.success) {
-    document.getElementById('uploadMsg').textContent = '✅ Fichier ajouté avec succès !';
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileName').textContent = '';
-    document.getElementById('fileZone').classList.remove('has-file');
-    document.getElementById('nomFichier').value = '';
-    setTimeout(() => document.getElementById('uploadMsg').textContent = '', 3000);
-    loadFichiers();
-  }
-}
-
 async function loadFichiers() {
-  const annee    = document.getElementById('fAnnee').value;
-  const semestre = document.getElementById('fSemestre').value;
-  const ressource= document.getElementById('fRessource').value;
-
+  const annee     = document.getElementById('fAnnee').value;
+  const semestre  = document.getElementById('fSemestre').value;
+  const ressource = document.getElementById('fRessource').value;
   let url = '/api/admin/fichiers?';
   if(annee)     url += `annee=${annee}&`;
   if(semestre)  url += `semestre=${semestre}&`;
   if(ressource) url += `ressource=${ressource}&`;
-
   const res = await fetch(url);
   const fichiers = await res.json();
   const list = document.getElementById('fichiersList');
-
-  if(!fichiers.length) {
-    list.innerHTML = '<div class="empty-msg">Aucun fichier pour l\'instant</div>';
-    return;
-  }
-
-  const anneeLabel = { '1a':'1ère année','2a':'2ème année','3a':'3ème année','4a':'4ème année','5a':'5ème année','6a':'6ème année' };
-  const semLabel   = { 's1':'Semestre 1','s2':'Semestre 2' };
-  const resLabel   = { 'cours':'Cours','td':'TD','tp':'TP','resumes':'Résumés' };
-
+  const anneeLabel = {'1a':'1ère année','2a':'2ème année','3a':'3ème année','4a':'4ème année','5a':'5ème année','6a':'6ème année'};
+  const semLabel   = {'s1':'Semestre 1','s2':'Semestre 2'};
+  const resLabel   = {'cours':'Cours','td':'TD','tp':'TP','resumes':'Résumés'};
+  if(!fichiers.length) { list.innerHTML = '<div class="empty-msg">Aucun fichier pour l\'instant</div>'; return; }
   list.innerHTML = fichiers.map(f => `
     <div class="fichier-item">
       <div class="fichier-info">
