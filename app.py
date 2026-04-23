@@ -69,7 +69,7 @@ def upload_fichier():
 
     result = cloudinary.uploader.upload(
         file,
-        resource_type = "raw",
+        resource_type = "auto",
         folder        = f"vetmed/{annee}/{semestre}/{ressource}/{module}",
         use_filename  = True,
         unique_filename = True
