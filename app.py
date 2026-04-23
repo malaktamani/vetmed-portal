@@ -11,9 +11,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vetmed.db'
 db = SQLAlchemy(app)
 
 cloudinary.config(
-    cloud_name = "dq9epzftz",
-    api_key    = "669664433256513",
-    api_secret = "kJu1rQ6Af69zt1ns8sQfWh9Nf04"
+    cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key    = os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret = os.environ.get("CLOUDINARY_API_SECRET")
 )
 
 ADMIN_PASSWORD = "vetmed2024"
