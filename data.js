@@ -31,7 +31,7 @@ const DATA = {
     },
     "1a-s2": {
       cours:   ["Anatomie","Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Ethnologie","Éthologie et bien-être","Physiologie","Français"],
-      td:      ["Biochimie","Biophysique","Cytologie","Embryologie"],
+      td:      ["Biochimie","Biophysique","Cytologie","Embryologie","Physiologie"],
       tp:      ["Anatomie","Biochimie","Éthologie et bien-être"],
       resumes: ["Biochimie","Biologie moléculaire","Biophysique","Cytologie","Embryologie","Éthologie et bien-être"]
     },
