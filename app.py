@@ -1,37 +1,40 @@
 from flask import Flask, request, jsonify, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
+import cloudinary
+import cloudinary.uploader
 import os
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = 'vetmed_secret_2024'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vetmed.db'
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
 db = SQLAlchemy(app)
 
-# ── MODÈLES
-class Fichier(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    annee = db.Column(db.String(10))
-    semestre = db.Column(db.String(5))
-    ressource = db.Column(db.String(20))
-    module = db.Column(db.String(100))
-    nom = db.Column(db.String(200))
-    filename = db.Column(db.String(200))
+cloudinary.config(
+    cloud_name = "dq9epzftz",
+    api_key    = "669664433256513",
+    api_secret = "kJu1rQ6Af69zt1ns8sQfWh9Nf04"
+)
 
 ADMIN_PASSWORD = "vetmed2024"
 
-# ── ROUTES PRINCIPALES
+class Fichier(db.Model):
+    id       = db.Column(db.Integer, primary_key=True)
+    annee    = db.Column(db.String(10))
+    semestre = db.Column(db.String(5))
+    ressource= db.Column(db.String(20))
+    module   = db.Column(db.String(100))
+    nom      = db.Column(db.String(200))
+    url      = db.Column(db.String(500))
+
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/uploads/<path:filename>')
-def uploaded_file(filename):
-    return send_from_directory('uploads', filename)
+@app.route('/admin.html')
+def admin():
+    return send_from_directory('.', 'admin.html')
 
-# ── ADMIN LOGIN
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
@@ -49,7 +52,6 @@ def admin_logout():
 def admin_check():
     return jsonify({'admin': session.get('admin', False)})
 
-# ── UPLOAD FICHIER
 @app.route('/api/admin/upload', methods=['POST'])
 def upload_fichier():
     if not session.get('admin'):
@@ -65,16 +67,24 @@ def upload_fichier():
     if not file:
         return jsonify({'error': 'Aucun fichier'}), 400
 
-    filename = f"{annee}_{semestre}_{ressource}_{module}_{file.filename}".replace(' ', '_')
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    result = cloudinary.uploader.upload(
+        file,
+        resource_type = "raw",
+        folder        = f"vetmed/{annee}/{semestre}/{ressource}/{module}",
+        use_filename  = True,
+        unique_filename = True
+    )
 
-    f = Fichier(annee=annee, semestre=semestre, ressource=ressource, module=module, nom=nom, filename=filename)
+    f = Fichier(
+        annee=annee, semestre=semestre,
+        ressource=ressource, module=module,
+        nom=nom, url=result['secure_url']
+    )
     db.session.add(f)
     db.session.commit()
 
     return jsonify({'success': True})
 
-# ── SUPPRIMER FICHIER
 @app.route('/api/admin/delete/<int:id>', methods=['DELETE'])
 def delete_fichier(id):
     if not session.get('admin'):
@@ -82,14 +92,10 @@ def delete_fichier(id):
 
     f = Fichier.query.get(id)
     if f:
-        path = os.path.join(app.config['UPLOAD_FOLDER'], f.filename)
-        if os.path.exists(path):
-            os.remove(path)
         db.session.delete(f)
         db.session.commit()
     return jsonify({'success': True})
 
-# ── RÉCUPÉRER FICHIERS D'UN MODULE
 @app.route('/api/fichiers')
 def get_fichiers():
     annee    = request.args.get('annee')
@@ -103,12 +109,11 @@ def get_fichiers():
     ).all()
 
     return jsonify([{
-        'id': f.id,
+        'id' : f.id,
         'nom': f.nom,
-        'url': f'/uploads/{f.filename}'
+        'url': f.url
     } for f in fichiers])
 
-# ── TOUS LES FICHIERS (admin)
 @app.route('/api/admin/fichiers')
 def get_all_fichiers():
     if not session.get('admin'):
@@ -117,7 +122,7 @@ def get_all_fichiers():
     return jsonify([{
         'id': f.id, 'annee': f.annee, 'semestre': f.semestre,
         'ressource': f.ressource, 'module': f.module,
-        'nom': f.nom, 'filename': f.filename
+        'nom': f.nom, 'url': f.url
     } for f in fichiers])
 
 if __name__ == '__main__':
