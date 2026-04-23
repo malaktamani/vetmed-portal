@@ -72,7 +72,8 @@ def upload_fichier():
         resource_type = "auto",
         folder        = f"vetmed/{annee}/{semestre}/{ressource}/{module}",
         use_filename  = True,
-        unique_filename = True
+        unique_filename = True,
+        access_mode   = "public"
     )
 
     f = Fichier(
