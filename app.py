@@ -6,7 +6,7 @@ import os
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = 'vetmed_secret_2024'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vetmed.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///vetmed.db')
 
 db = SQLAlchemy(app)
 
