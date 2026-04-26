@@ -7,3 +7,4 @@ pdfplumber
 pytesseract
 pillow
 requests
+psycopg2-binary
