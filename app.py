@@ -86,7 +86,7 @@ def admin():
     return send_from_directory('.', 'admin.html')
 
 @app.route('/chat.html')
-def chat():
+def chat_page():
     return send_from_directory('.', 'chat.html')
 
 # ── ADMIN LOGIN
