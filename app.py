@@ -203,8 +203,8 @@ def delete_fichier(id):
 # ── RÉCUPÉRER FICHIERS
 @app.route('/api/fichiers')
 def get_fichiers():
-    if not session.get('user_id'):
-        return jsonify({'error': 'Non connecté'}), 401
+   if not session.get('user_id') and not session.get('admin'):
+    return jsonify({'error': 'Non connecté'}), 401
     annee     = request.args.get('annee')
     semestre  = request.args.get('semestre')
     ressource = request.args.get('ressource')
