@@ -357,6 +357,12 @@ def delete_utilisateur(id):
 
 with app.app_context():
     db.create_all()
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text('ALTER TABLE fichier ADD COLUMN texte TEXT DEFAULT \'\''))
+            conn.commit()
+    except:
+        pass
 
 if __name__ == '__main__':
     with app.app_context():
