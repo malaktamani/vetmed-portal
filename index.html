@@ -10,6 +10,7 @@
       --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a26;
       --accent: #7c6af7; --accent2: #4ecdc4; --accent3: #f7c06a;
       --text: #f0eeff; --muted: #7a7a9a; --border: rgba(255,255,255,0.08);
+      --success: #4ecdc4; --danger: #f7756a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
@@ -25,10 +26,53 @@
       background: radial-gradient(circle, rgba(78,205,196,0.08) 0%, transparent 70%);
       pointer-events: none; z-index: 0;
     }
+
+    /* ── AUTH PAGES ── */
+    .auth-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 2rem; position: relative; z-index: 10;
+    }
+    .auth-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px;
+    }
+    .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; justify-content: center; }
+    .auth-logo-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    }
+    .auth-logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; }
+    .auth-logo-text span { color: var(--accent); }
+    .auth-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.4rem; margin-bottom: 0.4rem; }
+    .auth-sub { color: var(--muted); font-size: 14px; margin-bottom: 1.8rem; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .input {
+      width: 100%; padding: 12px 16px; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: 14px; outline: none; transition: border-color 0.2s;
+    }
+    .input:focus { border-color: var(--accent); }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-auth {
+      width: 100%; padding: 13px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s; margin-top: 8px;
+    }
+    .btn-auth:hover { opacity: 0.9; }
+    .auth-switch { text-align: center; margin-top: 1.2rem; font-size: 14px; color: var(--muted); }
+    .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: none; }
+    .auth-switch a:hover { text-decoration: underline; }
+    .auth-error { color: var(--danger); font-size: 13px; margin-top: 10px; text-align: center; }
+
+    /* ── MAIN SITE ── */
+    .site-wrap { display: none; }
     header {
       position: relative; z-index: 10;
       padding: 1.2rem 2.5rem;
-      display: flex; align-items: center;
+      display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(10px); background: rgba(10,10,15,0.8);
     }
@@ -40,6 +84,24 @@
     }
     .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; }
     .logo-text span { color: var(--accent); }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-badge {
+      background: rgba(124,106,247,0.15); color: var(--accent);
+      border: 1px solid rgba(124,106,247,0.3);
+      padding: 5px 14px; border-radius: 20px; font-size: 13px;
+    }
+    .premium-badge {
+      background: rgba(247,192,106,0.15); color: var(--accent3);
+      border: 1px solid rgba(247,192,106,0.3);
+      padding: 5px 14px; border-radius: 20px; font-size: 13px;
+    }
+    .logout-btn {
+      background: rgba(247,117,106,0.1); color: var(--danger);
+      border: 1px solid rgba(247,117,106,0.2); padding: 6px 14px;
+      border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s;
+    }
+    .logout-btn:hover { background: rgba(247,117,106,0.25); }
+
     .breadcrumb {
       position: relative; z-index: 10; padding: 0.8rem 2.5rem;
       display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
@@ -53,7 +115,7 @@
     .crumb:hover { background: rgba(124,106,247,0.3); }
     .main { position: relative; z-index: 10; padding: 2.5rem; }
     .hero {
-      min-height: 80vh; display: flex; flex-direction: column;
+      min-height: 75vh; display: flex; flex-direction: column;
       align-items: center; justify-content: center; text-align: center; gap: 2rem;
     }
     .hero-badge {
@@ -133,10 +195,7 @@
     .result-card .big { font-size: 3.5rem; margin-bottom: 1rem; }
     .result-card h3 { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
     .tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 1rem 0; }
-    .tag {
-      background: rgba(255,255,255,0.06); color: var(--muted);
-      font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
-    }
+    .tag { background: rgba(255,255,255,0.06); color: var(--muted); font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); }
     .result-msg { font-size: 14px; color: var(--muted); line-height: 1.7; }
     .fichiers-liste { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px; text-align: left; }
     .fichier-item {
@@ -164,20 +223,167 @@
 </head>
 <body>
 
-<header>
-  <div class="logo">
-    <div class="logo-icon">🐾</div>
-    <div class="logo-text">Vet<span>Study</span></div>
+<!-- ── PAGE CONNEXION ── -->
+<div class="auth-wrap" id="loginPage">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🐾</div>
+      <div class="auth-logo-text">Vet<span>Study</span></div>
+    </div>
+    <div class="auth-title">Connexion</div>
+    <div class="auth-sub">Accède à tes ressources vétérinaires</div>
+    <div class="form-group">
+      <label>Email</label>
+      <input class="input" type="email" id="loginEmail" placeholder="ton@email.com">
+    </div>
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <input class="input" type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter') connexion()">
+    </div>
+    <button class="btn-auth" onclick="connexion()">Se connecter</button>
+    <div class="auth-error" id="loginError"></div>
+    <div class="auth-switch">Pas encore de compte ? <a onclick="showInscription()">S'inscrire</a></div>
   </div>
-</header>
+</div>
 
-<div class="breadcrumb" id="breadcrumb"></div>
-<div class="main" id="app"></div>
+<!-- ── PAGE INSCRIPTION ── -->
+<div class="auth-wrap" id="inscriptionPage" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🐾</div>
+      <div class="auth-logo-text">Vet<span>Study</span></div>
+    </div>
+    <div class="auth-title">Inscription</div>
+    <div class="auth-sub">Crée ton compte VetStudy</div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Prénom</label>
+        <input class="input" type="text" id="regPrenom" placeholder="Prénom">
+      </div>
+      <div class="form-group">
+        <label>Nom</label>
+        <input class="input" type="text" id="regNom" placeholder="Nom">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input class="input" type="email" id="regEmail" placeholder="ton@email.com">
+    </div>
+    <div class="form-group">
+      <label>Niveau d'étude</label>
+      <select class="input" id="regNiveau">
+        <option value="1ere année">1ère année</option>
+        <option value="2eme année">2ème année</option>
+        <option value="3eme année">3ème année</option>
+        <option value="4eme année">4ème année</option>
+        <option value="5eme année">5ème année</option>
+        <option value="6eme année">6ème année</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <input class="input" type="password" id="regPassword" placeholder="••••••••">
+    </div>
+    <button class="btn-auth" onclick="inscription()">Créer mon compte</button>
+    <div class="auth-error" id="regError"></div>
+    <div class="auth-switch">Déjà un compte ? <a onclick="showConnexion()">Se connecter</a></div>
+  </div>
+</div>
+
+<!-- ── SITE PRINCIPAL ── -->
+<div class="site-wrap" id="siteWrap">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🐾</div>
+      <div class="logo-text">Vet<span>Study</span></div>
+    </div>
+    <div class="user-info">
+      <span class="user-badge" id="userBadge">👤</span>
+      <span class="premium-badge" id="premiumBadge" style="display:none">⭐ Premium</span>
+      <button class="logout-btn" onclick="deconnexion()">Déconnexion</button>
+    </div>
+  </header>
+  <div class="breadcrumb" id="breadcrumb"></div>
+  <div class="main" id="app"></div>
+</div>
 
 <script src="data.js"></script>
 <script>
 let state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:false };
+let currentUser = null;
 
+// ── AUTH
+function showInscription() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('inscriptionPage').style.display = 'flex';
+}
+
+function showConnexion() {
+  document.getElementById('inscriptionPage').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+}
+
+async function connexion() {
+  const email    = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if(!email || !password) { document.getElementById('loginError').textContent = 'Remplis tous les champs !'; return; }
+  const res  = await fetch('/api/connexion', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
+  const data = await res.json();
+  if(data.success) {
+    currentUser = { prenom: data.prenom, premium: data.premium };
+    showSite();
+  } else {
+    document.getElementById('loginError').textContent = data.error;
+  }
+}
+
+async function inscription() {
+  const prenom   = document.getElementById('regPrenom').value;
+  const nom      = document.getElementById('regNom').value;
+  const email    = document.getElementById('regEmail').value;
+  const niveau   = document.getElementById('regNiveau').value;
+  const password = document.getElementById('regPassword').value;
+  if(!prenom || !nom || !email || !password) { document.getElementById('regError').textContent = 'Remplis tous les champs !'; return; }
+  const res  = await fetch('/api/inscription', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prenom, nom, email, niveau, password}) });
+  const data = await res.json();
+  if(data.success) {
+    currentUser = { prenom: data.prenom, premium: false };
+    showSite();
+  } else {
+    document.getElementById('regError').textContent = data.error;
+  }
+}
+
+async function deconnexion() {
+  await fetch('/api/deconnexion', {method:'POST'});
+  currentUser = null;
+  document.getElementById('siteWrap').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+  state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:false };
+}
+
+function showSite() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('inscriptionPage').style.display = 'none';
+  document.getElementById('siteWrap').style.display = 'block';
+  document.getElementById('userBadge').textContent = '👤 ' + currentUser.prenom;
+  if(currentUser.premium) document.getElementById('premiumBadge').style.display = 'inline-flex';
+  render();
+}
+
+// Vérifier si déjà connecté
+async function checkSession() {
+  const res  = await fetch('/api/me');
+  const data = await res.json();
+  if(data.connecte) {
+    currentUser = { prenom: data.prenom, premium: data.premium };
+    showSite();
+  }
+}
+
+// ── NAVIGATION
 function resetTo(step) {
   const steps = ["annee","semestre","ressource","module"];
   const idx = steps.indexOf(step);
@@ -215,7 +421,7 @@ function render() {
     app.innerHTML = `
       <div class="hero">
         <div class="hero-badge">Plateforme de ressources pédagogiques</div>
-        <h1>Tes ressources,<br><span class="grad">organisées.</span></h1>
+        <h1>Bienvenue ${currentUser ? currentUser.prenom : ''} !<br><span class="grad">Tes ressources.</span></h1>
         <p>Accède à tous tes cours, TD, TP et résumés classés par année, semestre et module.</p>
         <div class="hero-card" onclick="goAnnees()">
           <div class="card-icon">🐾</div>
@@ -330,13 +536,14 @@ function render() {
       </div>
     </div>`;
 
-  // Charger les fichiers depuis le serveur
   fetch(`/api/fichiers?annee=${state.annee.id}&semestre=${state.semestre.id}&ressource=${state.ressource.id}&module=${encodeURIComponent(state.module)}`)
     .then(r => r.json())
     .then(data => {
       const liste = document.getElementById('fichiers-liste');
       if(!liste) return;
-      if(data.length === 0) {
+      if(data.error) {
+        liste.innerHTML = '<p class="result-msg">Connecte-toi pour voir les fichiers.</p>';
+      } else if(data.length === 0) {
         liste.innerHTML = '<p class="result-msg">Aucun fichier pour l\'instant.<br>Les ressources seront ajoutées bientôt !</p>';
       } else {
         liste.innerHTML = `<div class="fichiers-liste">${data.map(f => `
@@ -357,7 +564,8 @@ function selectSemestre(s)  { state.semestre = s; render(); }
 function selectRessource(r) { state.ressource = r; render(); }
 function selectModule(m)    { state.module = m; render(); }
 
-render();
+// Vérifier session au chargement
+checkSession();
 </script>
 </body>
 </html>
