@@ -26,9 +26,8 @@ cloudinary.config(
 )
 
 ADMIN_PASSWORD = "vetmed2024"
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
-# ── MODÈLES
 class Fichier(db.Model):
     id        = db.Column(db.Integer, primary_key=True)
     annee     = db.Column(db.String(10))
@@ -50,7 +49,6 @@ class Utilisateur(db.Model):
     premium   = db.Column(db.Boolean, default=False)
     date_inscription = db.Column(db.String(50))
 
-# ── EXTRACTION TEXTE PDF
 def extraire_texte(file_bytes):
     texte = ''
     try:
@@ -60,7 +58,6 @@ def extraire_texte(file_bytes):
                 if t and len(t.strip()) > 20:
                     texte += t + '\n'
                 else:
-                    # Page scannée → OCR
                     img = page.to_image(resolution=200).original
                     t_ocr = pytesseract.image_to_string(img, lang='fra+eng')
                     texte += t_ocr + '\n'
@@ -76,7 +73,6 @@ def extraire_texte_depuis_url(url):
         print(f"Erreur téléchargement: {e}")
         return ''
 
-# ── ROUTES PRINCIPALES
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -89,7 +85,6 @@ def admin():
 def chat_page():
     return send_from_directory('.', 'chat.html')
 
-# ── ADMIN LOGIN
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
@@ -107,7 +102,6 @@ def admin_logout():
 def admin_check():
     return jsonify({'admin': session.get('admin', False)})
 
-# ── INSCRIPTION
 @app.route('/api/inscription', methods=['POST'])
 def inscription():
     data = request.json
@@ -129,7 +123,6 @@ def inscription():
     session['user_premium'] = u.premium
     return jsonify({'success': True, 'prenom': u.prenom})
 
-# ── CONNEXION
 @app.route('/api/connexion', methods=['POST'])
 def connexion():
     data = request.json
@@ -143,7 +136,6 @@ def connexion():
     session['user_premium'] = u.premium
     return jsonify({'success': True, 'prenom': u.prenom, 'premium': u.premium})
 
-# ── DÉCONNEXION
 @app.route('/api/deconnexion', methods=['POST'])
 def deconnexion():
     session.pop('user_id', None)
@@ -151,14 +143,12 @@ def deconnexion():
     session.pop('user_premium', None)
     return jsonify({'success': True})
 
-# ── CHECK SESSION
 @app.route('/api/me', methods=['GET'])
 def me():
     if session.get('user_id'):
         return jsonify({'connecte': True, 'prenom': session.get('user_nom'), 'premium': session.get('user_premium', False)})
     return jsonify({'connecte': False})
 
-# ── UPLOAD FICHIER
 @app.route('/api/admin/upload', methods=['POST'])
 def upload_fichier():
     if not session.get('admin'):
@@ -171,10 +161,8 @@ def upload_fichier():
     file      = request.files.get('fichier')
     if not file:
         return jsonify({'error': 'Aucun fichier'}), 400
-
     file_bytes = file.read()
     texte = extraire_texte(file_bytes)
-
     file.seek(0)
     result = cloudinary.uploader.upload(
         file,
@@ -189,7 +177,6 @@ def upload_fichier():
     db.session.commit()
     return jsonify({'success': True})
 
-# ── SUPPRIMER FICHIER
 @app.route('/api/admin/delete/<int:id>', methods=['DELETE'])
 def delete_fichier(id):
     if not session.get('admin'):
@@ -200,11 +187,10 @@ def delete_fichier(id):
         db.session.commit()
     return jsonify({'success': True})
 
-# ── RÉCUPÉRER FICHIERS
 @app.route('/api/fichiers')
 def get_fichiers():
-   if not session.get('user_id') and not session.get('admin'):
-    return jsonify({'error': 'Non connecté'}), 401
+    if not session.get('user_id') and not session.get('admin'):
+        return jsonify({'error': 'Non connecté'}), 401
     annee     = request.args.get('annee')
     semestre  = request.args.get('semestre')
     ressource = request.args.get('ressource')
@@ -212,7 +198,6 @@ def get_fichiers():
     fichiers  = Fichier.query.filter_by(annee=annee, semestre=semestre, ressource=ressource, module=module).all()
     return jsonify([{'id': f.id, 'nom': f.nom, 'url': f.url} for f in fichiers])
 
-# ── TOUS LES FICHIERS (admin)
 @app.route('/api/admin/fichiers')
 def get_all_fichiers():
     if not session.get('admin'):
@@ -227,7 +212,6 @@ def get_all_fichiers():
     fichiers = query.all()
     return jsonify([{'id': f.id, 'annee': f.annee, 'semestre': f.semestre, 'ressource': f.ressource, 'module': f.module, 'nom': f.nom, 'url': f.url} for f in fichiers])
 
-# ── EXTRAIRE TEXTE ANCIENS FICHIERS (admin)
 @app.route('/api/admin/extraire_textes', methods=['POST'])
 def extraire_textes_anciens():
     if not session.get('admin'):
@@ -247,26 +231,22 @@ def extraire_textes_anciens():
             pass
     return jsonify({'success': True, 'traites': traites, 'total': total})
 
-# ── CHATBOT
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    if not session.get('user_id'):
+    if not session.get('user_id') and not session.get('admin'):
         return jsonify({'error': 'Non connecté'}), 401
     data     = request.json
     question = data.get('message', '')
     if not question:
         return jsonify({'error': 'Message vide'}), 400
 
-    # Récupérer tous les fichiers avec leur texte
     fichiers = Fichier.query.all()
 
-    # Construire le contexte
     contexte_fichiers = []
     for f in fichiers:
         info = f"[{f.annee} | {f.semestre} | {f.ressource} | {f.module}] — {f.nom}"
         contexte_fichiers.append(info)
 
-    # Chercher les fichiers pertinents selon la question
     question_lower = question.lower()
     textes_pertinents = []
     for f in fichiers:
@@ -292,23 +272,24 @@ Sois précis, pédagogique et utile pour les étudiants vétérinaires."""
 
     try:
         response = requests.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
             },
             json={
-                "model": "claude-sonnet-4-20250514",
+                "model": "llama-3.3-70b-versatile",
                 "max_tokens": 1500,
-                "system": system_prompt,
-                "messages": [{"role": "user", "content": question}]
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ]
             },
             timeout=30
         )
         result = response.json()
-        if 'content' in result and len(result['content']) > 0:
-            answer = result['content'][0]['text']
+        if 'choices' in result:
+            answer = result['choices'][0]['message']['content']
         elif 'error' in result:
             answer = "Erreur API : " + str(result['error'])
         else:
@@ -317,7 +298,6 @@ Sois précis, pédagogique et utile pour les étudiants vétérinaires."""
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ── GESTION UTILISATEURS (admin)
 @app.route('/api/admin/utilisateurs')
 def get_utilisateurs():
     if not session.get('admin'):
