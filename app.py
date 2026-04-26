@@ -307,7 +307,12 @@ Sois précis, pédagogique et utile pour les étudiants vétérinaires."""
             timeout=30
         )
         result = response.json()
-        answer = result['content'][0]['text']
+        if 'content' in result and len(result['content']) > 0:
+            answer = result['content'][0]['text']
+        elif 'error' in result:
+            answer = "Erreur API : " + str(result['error'])
+        else:
+            answer = "Réponse inattendue : " + str(result)
         return jsonify({'success': True, 'answer': answer})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
