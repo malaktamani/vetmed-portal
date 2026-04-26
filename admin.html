@@ -15,31 +15,18 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
     .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .login-card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 380px; text-align: center;
-    }
+    .login-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 380px; text-align: center; }
     .login-card .icon { font-size: 2.5rem; margin-bottom: 1rem; }
     .login-card h2 { font-family: 'Syne', sans-serif; font-size: 1.4rem; margin-bottom: 0.5rem; }
     .login-card p { color: var(--muted); font-size: 14px; margin-bottom: 1.5rem; }
-    .input {
-      width: 100%; padding: 12px 16px; background: var(--bg3);
-      border: 1px solid var(--border); border-radius: 10px;
-      color: var(--text); font-size: 14px; margin-bottom: 12px; outline: none;
-      transition: border-color 0.2s;
-    }
+    .input { width: 100%; padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; margin-bottom: 12px; outline: none; transition: border-color 0.2s; }
     .input:focus { border-color: var(--accent); }
     .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
     .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
     .btn-primary:hover { opacity: 0.9; }
     .error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; }
     .admin-panel { display: none; }
-    header {
-      padding: 1.2rem 2rem; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(10,10,15,0.9); backdrop-filter: blur(10px);
-      position: sticky; top: 0; z-index: 100;
-    }
+    header { padding: 1.2rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: rgba(10,10,15,0.9); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
     .logo { display: flex; align-items: center; gap: 10px; }
     .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
     .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; }
@@ -54,55 +41,29 @@
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
     select.input { cursor: pointer; }
-    .file-zone {
-      border: 2px dashed var(--border); border-radius: 12px;
-      padding: 2rem; text-align: center; cursor: pointer;
-      transition: border-color 0.2s; margin-bottom: 12px;
-    }
+    .file-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: 12px; }
     .file-zone:hover { border-color: var(--accent); }
-    .file-zone.has-file { border-color: var(--success); }
     .file-zone p { color: var(--muted); font-size: 14px; }
     #fileInput { display: none; }
-
-    /* FILE QUEUE */
     .queue { margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .queue-item {
-      background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 10px; padding: 0.8rem 1rem;
-      display: flex; align-items: center; gap: 10px;
-    }
+    .queue-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 1rem; display: flex; align-items: center; gap: 10px; }
     .queue-item .fname { flex: 1; font-size: 13px; }
     .queue-item input.input { margin: 0; padding: 8px 12px; font-size: 13px; }
-    .queue-item .remove-btn {
-      background: rgba(247,117,106,0.1); color: var(--danger);
-      border: 1px solid rgba(247,117,106,0.2); padding: 5px 10px;
-      border-radius: 8px; cursor: pointer; font-size: 12px; white-space: nowrap;
-    }
+    .queue-item .remove-btn { background: rgba(247,117,106,0.1); color: var(--danger); border: 1px solid rgba(247,117,106,0.2); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; white-space: nowrap; }
     .queue-item .status { font-size: 12px; min-width: 80px; text-align: right; }
     .status-pending { color: var(--muted); }
     .status-uploading { color: var(--accent3); }
     .status-done { color: var(--success); }
     .status-error { color: var(--danger); }
-
-    .upload-btn {
-      width: 100%; padding: 12px; border-radius: 10px; border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: white; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s;
-    }
+    .upload-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
     .upload-btn:hover { opacity: 0.9; }
     .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .progress-bar-wrap { background: var(--bg3); border-radius: 10px; height: 8px; margin: 12px 0; overflow: hidden; display: none; }
     .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 10px; transition: width 0.3s; width: 0%; }
     .success-msg { color: var(--success); font-size: 13px; margin-top: 8px; text-align: center; }
-
-    .fichiers-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; }
+    .fichiers-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; margin-bottom: 2rem; }
     .filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.2rem; }
-    .fichier-item {
-      background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 10px; padding: 1rem 1.2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; margin-bottom: 8px;
-    }
+    .fichier-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
     .fichier-info { flex: 1; }
     .fichier-nom { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
     .fichier-meta { font-size: 12px; color: var(--muted); }
@@ -137,6 +98,7 @@
   </header>
 
   <div class="content">
+
     <div class="section-title">📤 Ajouter des fichiers</div>
     <div class="upload-card">
       <div class="form-grid">
@@ -172,19 +134,15 @@
           <select class="input" id="module"></select>
         </div>
       </div>
-
       <div class="file-zone" id="fileZone" onclick="document.getElementById('fileInput').click()">
         <p>📁 Clique pour choisir un ou plusieurs PDF</p>
         <p style="font-size:12px;color:var(--muted);margin-top:6px">Tu peux sélectionner plusieurs fichiers à la fois !</p>
       </div>
       <input type="file" id="fileInput" accept=".pdf" multiple onchange="filesSelected(this)">
-
       <div class="queue" id="fileQueue"></div>
-
       <div class="progress-bar-wrap" id="progressWrap">
         <div class="progress-bar" id="progressBar"></div>
       </div>
-
       <button class="upload-btn" id="uploadBtn" onclick="uploadAll()" style="display:none">⬆️ Uploader tous les fichiers</button>
       <div class="success-msg" id="uploadMsg"></div>
     </div>
@@ -217,6 +175,12 @@
       </div>
       <div id="fichiersList"></div>
     </div>
+
+    <div class="section-title">👥 Utilisateurs inscrits</div>
+    <div class="fichiers-card">
+      <div id="usersList"></div>
+    </div>
+
   </div>
 </div>
 
@@ -279,18 +243,15 @@ function removeFile(i) {
 async function uploadAll() {
   const pending = fileQueue.filter(f => f.status === 'pending');
   if(!pending.length) return;
-
   const btn = document.getElementById('uploadBtn');
   const progressWrap = document.getElementById('progressWrap');
   const progressBar = document.getElementById('progressBar');
   btn.disabled = true;
   progressWrap.style.display = 'block';
-
   let done = 0;
   for(const item of pending) {
     item.status = 'uploading';
     renderQueue();
-
     const formData = new FormData();
     formData.append('annee',     document.getElementById('annee').value);
     formData.append('semestre',  document.getElementById('semestre').value);
@@ -298,7 +259,6 @@ async function uploadAll() {
     formData.append('module',    document.getElementById('module').value);
     formData.append('nom',       item.nom);
     formData.append('fichier',   item.file);
-
     try {
       const res = await fetch('/api/admin/upload', { method:'POST', body: formData });
       const data = await res.json();
@@ -306,12 +266,10 @@ async function uploadAll() {
     } catch(e) {
       item.status = 'error';
     }
-
     done++;
     progressBar.style.width = (done / pending.length * 100) + '%';
     renderQueue();
   }
-
   btn.disabled = false;
   const allDone = fileQueue.every(f => f.status === 'done');
   document.getElementById('uploadMsg').textContent = allDone ? '✅ Tous les fichiers uploadés !' : '⚠️ Certains fichiers ont échoué.';
@@ -333,7 +291,7 @@ async function login() {
   if(data.success) {
     document.getElementById('loginWrap').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
-    updateModules(); loadFichiers();
+    updateModules(); loadFichiers(); loadUtilisateurs();
   } else {
     document.getElementById('loginError').textContent = 'Mot de passe incorrect !';
   }
@@ -369,6 +327,49 @@ async function loadFichiers() {
       </div>
       <button class="delete-btn" onclick="deleteFichier(${f.id})">🗑️ Supprimer</button>
     </div>`).join('');
+}
+
+async function loadUtilisateurs() {
+  const res = await fetch('/api/admin/utilisateurs');
+  const users = await res.json();
+  const list = document.getElementById('usersList');
+  if(!users.length) { list.innerHTML = '<div class="empty-msg">Aucun utilisateur inscrit</div>'; return; }
+  list.innerHTML = users.map(u => `
+    <div class="fichier-item">
+      <div class="fichier-info">
+        <div class="fichier-nom">👤 ${u.prenom} ${u.nom}</div>
+        <div class="fichier-meta">${u.email} · ${u.niveau} · Inscrit le ${u.date_inscription}</div>
+        <div style="margin-top:6px;display:flex;gap:6px">
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${u.actif ? 'rgba(78,205,196,0.15)' : 'rgba(247,117,106,0.15)'};color:${u.actif ? '#4ecdc4' : '#f7756a'}">
+            ${u.actif ? '✅ Actif' : '🚫 Bloqué'}
+          </span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${u.premium ? 'rgba(247,192,106,0.15)' : 'rgba(255,255,255,0.05)'};color:${u.premium ? '#f7c06a' : '#7a7a9a'}">
+            ${u.premium ? '⭐ Premium' : 'Standard'}
+          </span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="delete-btn" style="background:rgba(124,106,247,0.1);color:#7c6af7;border-color:rgba(124,106,247,0.3)" onclick="toggleActif(${u.id})">${u.actif ? 'Bloquer' : 'Débloquer'}</button>
+        <button class="delete-btn" style="background:rgba(247,192,106,0.1);color:#f7c06a;border-color:rgba(247,192,106,0.3)" onclick="togglePremium(${u.id})">${u.premium ? 'Retirer Premium' : '⭐ Donner Premium'}</button>
+        <button class="delete-btn" onclick="deleteUser(${u.id})">🗑️ Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+
+async function toggleActif(id) {
+  await fetch(`/api/admin/utilisateur/${id}/toggle_actif`, {method:'POST'});
+  loadUtilisateurs();
+}
+
+async function togglePremium(id) {
+  await fetch(`/api/admin/utilisateur/${id}/toggle_premium`, {method:'POST'});
+  loadUtilisateurs();
+}
+
+async function deleteUser(id) {
+  if(!confirm('Supprimer cet utilisateur ?')) return;
+  await fetch(`/api/admin/utilisateur/${id}`, {method:'DELETE'});
+  loadUtilisateurs();
 }
 
 async function deleteFichier(id) {
