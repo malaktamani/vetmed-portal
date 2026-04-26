@@ -3,11 +3,19 @@ from flask_sqlalchemy import SQLAlchemy
 import cloudinary
 import cloudinary.uploader
 import os
+import requests
+import pdfplumber
+import pytesseract
+from PIL import Image
+import io
 from werkzeug.security import generate_password_hash, check_password_hash
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = 'vetmed_secret_2024'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///vetmed.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
@@ -18,6 +26,7 @@ cloudinary.config(
 )
 
 ADMIN_PASSWORD = "vetmed2024"
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 # ── MODÈLES
 class Fichier(db.Model):
@@ -28,6 +37,7 @@ class Fichier(db.Model):
     module    = db.Column(db.String(100))
     nom       = db.Column(db.String(200))
     url       = db.Column(db.String(500))
+    texte     = db.Column(db.Text, default='')
 
 class Utilisateur(db.Model):
     id        = db.Column(db.Integer, primary_key=True)
@@ -40,6 +50,32 @@ class Utilisateur(db.Model):
     premium   = db.Column(db.Boolean, default=False)
     date_inscription = db.Column(db.String(50))
 
+# ── EXTRACTION TEXTE PDF
+def extraire_texte(file_bytes):
+    texte = ''
+    try:
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            for page in pdf.pages:
+                t = page.extract_text()
+                if t and len(t.strip()) > 20:
+                    texte += t + '\n'
+                else:
+                    # Page scannée → OCR
+                    img = page.to_image(resolution=200).original
+                    t_ocr = pytesseract.image_to_string(img, lang='fra+eng')
+                    texte += t_ocr + '\n'
+    except Exception as e:
+        print(f"Erreur extraction: {e}")
+    return texte.strip()
+
+def extraire_texte_depuis_url(url):
+    try:
+        r = requests.get(url, timeout=30)
+        return extraire_texte(r.content)
+    except Exception as e:
+        print(f"Erreur téléchargement: {e}")
+        return ''
+
 # ── ROUTES PRINCIPALES
 @app.route('/')
 def index():
@@ -48,6 +84,10 @@ def index():
 @app.route('/admin.html')
 def admin():
     return send_from_directory('.', 'admin.html')
+
+@app.route('/chat.html')
+def chat():
+    return send_from_directory('.', 'chat.html')
 
 # ── ADMIN LOGIN
 @app.route('/api/admin/login', methods=['POST'])
@@ -73,7 +113,6 @@ def inscription():
     data = request.json
     if Utilisateur.query.filter_by(email=data.get('email')).first():
         return jsonify({'success': False, 'error': 'Email déjà utilisé'}), 400
-    
     from datetime import datetime
     u = Utilisateur(
         nom=data.get('nom'),
@@ -87,6 +126,7 @@ def inscription():
     db.session.commit()
     session['user_id'] = u.id
     session['user_nom'] = u.prenom
+    session['user_premium'] = u.premium
     return jsonify({'success': True, 'prenom': u.prenom})
 
 # ── CONNEXION
@@ -103,7 +143,7 @@ def connexion():
     session['user_premium'] = u.premium
     return jsonify({'success': True, 'prenom': u.prenom, 'premium': u.premium})
 
-# ── DÉCONNEXION USER
+# ── DÉCONNEXION
 @app.route('/api/deconnexion', methods=['POST'])
 def deconnexion():
     session.pop('user_id', None)
@@ -111,15 +151,11 @@ def deconnexion():
     session.pop('user_premium', None)
     return jsonify({'success': True})
 
-# ── CHECK SESSION USER
+# ── CHECK SESSION
 @app.route('/api/me', methods=['GET'])
 def me():
     if session.get('user_id'):
-        return jsonify({
-            'connecte': True,
-            'prenom': session.get('user_nom'),
-            'premium': session.get('user_premium', False)
-        })
+        return jsonify({'connecte': True, 'prenom': session.get('user_nom'), 'premium': session.get('user_premium', False)})
     return jsonify({'connecte': False})
 
 # ── UPLOAD FICHIER
@@ -135,6 +171,11 @@ def upload_fichier():
     file      = request.files.get('fichier')
     if not file:
         return jsonify({'error': 'Aucun fichier'}), 400
+
+    file_bytes = file.read()
+    texte = extraire_texte(file_bytes)
+
+    file.seek(0)
     result = cloudinary.uploader.upload(
         file,
         resource_type   = "auto",
@@ -143,7 +184,7 @@ def upload_fichier():
         unique_filename = True,
         access_mode     = "public"
     )
-    f = Fichier(annee=annee, semestre=semestre, ressource=ressource, module=module, nom=nom, url=result['secure_url'])
+    f = Fichier(annee=annee, semestre=semestre, ressource=ressource, module=module, nom=nom, url=result['secure_url'], texte=texte)
     db.session.add(f)
     db.session.commit()
     return jsonify({'success': True})
@@ -185,6 +226,91 @@ def get_all_fichiers():
     if ressource: query = query.filter_by(ressource=ressource)
     fichiers = query.all()
     return jsonify([{'id': f.id, 'annee': f.annee, 'semestre': f.semestre, 'ressource': f.ressource, 'module': f.module, 'nom': f.nom, 'url': f.url} for f in fichiers])
+
+# ── EXTRAIRE TEXTE ANCIENS FICHIERS (admin)
+@app.route('/api/admin/extraire_textes', methods=['POST'])
+def extraire_textes_anciens():
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    fichiers = Fichier.query.filter(
+        (Fichier.texte == None) | (Fichier.texte == '')
+    ).all()
+    total = len(fichiers)
+    traites = 0
+    for f in fichiers:
+        try:
+            texte = extraire_texte_depuis_url(f.url)
+            f.texte = texte
+            db.session.commit()
+            traites += 1
+        except:
+            pass
+    return jsonify({'success': True, 'traites': traites, 'total': total})
+
+# ── CHATBOT
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    if not session.get('user_id'):
+        return jsonify({'error': 'Non connecté'}), 401
+    data     = request.json
+    question = data.get('message', '')
+    if not question:
+        return jsonify({'error': 'Message vide'}), 400
+
+    # Récupérer tous les fichiers avec leur texte
+    fichiers = Fichier.query.all()
+
+    # Construire le contexte
+    contexte_fichiers = []
+    for f in fichiers:
+        info = f"[{f.annee} | {f.semestre} | {f.ressource} | {f.module}] — {f.nom}"
+        contexte_fichiers.append(info)
+
+    # Chercher les fichiers pertinents selon la question
+    question_lower = question.lower()
+    textes_pertinents = []
+    for f in fichiers:
+        if f.texte and any(mot in question_lower for mot in [f.module.lower(), f.nom.lower()]):
+            textes_pertinents.append(f"=== {f.nom} ({f.module} - {f.annee} {f.semestre}) ===\n{f.texte[:3000]}")
+
+    system_prompt = f"""Tu es VetBot, l'assistant IA du portail VetStudy — une plateforme de ressources pour les étudiants en médecine vétérinaire.
+
+Tu as accès à la liste complète des fichiers disponibles sur le site :
+{chr(10).join(contexte_fichiers[:100])}
+
+{"Tu as aussi accès au contenu de certains cours pertinents :" + chr(10) + chr(10).join(textes_pertinents[:5]) if textes_pertinents else ""}
+
+Tes capacités :
+- Dire quels fichiers sont disponibles et où les trouver (année, semestre, type, module)
+- Répondre aux questions sur le contenu des cours
+- Expliquer des concepts vétérinaires
+- Traduire du contenu français ↔ anglais
+- Résumer des cours
+
+Réponds toujours en français sauf si on te demande autre chose.
+Sois précis, pédagogique et utile pour les étudiants vétérinaires."""
+
+    try:
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json"
+            },
+            json={
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 1500,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": question}]
+            },
+            timeout=30
+        )
+        result = response.json()
+        answer = result['content'][0]['text']
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ── GESTION UTILISATEURS (admin)
 @app.route('/api/admin/utilisateurs')
