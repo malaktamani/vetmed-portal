@@ -327,12 +327,14 @@ def chat():
 
     ordonnes = pertinents + autres
 
-    contexte_fichiers = [f['info'] for f in ordonnes[:150]]
+    # Réduit à 100 fichiers listés pour rester sous la limite de tokens
+    contexte_fichiers = [f['info'] for f in ordonnes[:100]]
 
+    # Seulement 3 extraits de 3000 caractères max
     textes_pertinents = []
-    for f in pertinents[:10]:
+    for f in pertinents[:3]:
         if f['texte']:
-            extrait = f['texte'][:5000]
+            extrait = f['texte'][:3000]
             textes_pertinents.append(
                 f"=== {f['nom']} ({f['module']} - {f['annee']} {f['semestre']}) ===\n{extrait}"
             )
@@ -350,10 +352,10 @@ Règles de réponse :
 - Si tu ne trouves pas l'information, propose des alternatives ou redirige l'utilisateur.
 
 Contexte actuel :
-{chr(10).join(contexte_fichiers[:150])}
+{chr(10).join(contexte_fichiers[:100])}
 
 Extraits de cours pertinents :
-{chr(10).join(textes_pertinents[:10]) if textes_pertinents else "Aucun extrait spécifique trouvé."}
+{chr(10).join(textes_pertinents[:3]) if textes_pertinents else "Aucun extrait spécifique trouvé."}
 """
 
     try:
