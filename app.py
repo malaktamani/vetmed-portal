@@ -216,20 +216,35 @@ def get_all_fichiers():
 def extraire_textes_anciens():
     if not session.get('admin'):
         return jsonify({'error': 'Non autorisé'}), 401
+    
     fichiers = Fichier.query.filter(
         (Fichier.texte == None) | (Fichier.texte == '')
-    ).all()
-    total = len(fichiers)
+    ).limit(3).all()
+    
+    if not fichiers:
+        return jsonify({'success': True, 'traites': 0, 'total': 0, 'termine': True})
+    
     traites = 0
     for f in fichiers:
         try:
             texte = extraire_texte_depuis_url(f.url)
-            f.texte = texte
-            db.session.commit()
-            traites += 1
-        except:
-            pass
-    return jsonify({'success': True, 'traites': traites, 'total': total})
+            if texte:
+                f.texte = texte
+                db.session.commit()
+                traites += 1
+        except Exception as e:
+            print(f"Erreur fichier {f.id}: {e}")
+    
+    restants = Fichier.query.filter(
+        (Fichier.texte == None) | (Fichier.texte == '')
+    ).count()
+    
+    return jsonify({
+        'success': True,
+        'traites': traites,
+        'total': restants,
+        'termine': restants == 0
+    })
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
