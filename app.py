@@ -9,6 +9,7 @@ import pytesseract
 from PIL import Image
 import io
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -28,27 +29,42 @@ cloudinary.config(
 ADMIN_PASSWORD = "vetmed2024"
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
+# ── MODELS ─────────────────
 class Fichier(db.Model):
-    id        = db.Column(db.Integer, primary_key=True)
-    annee     = db.Column(db.String(10))
-    semestre  = db.Column(db.String(5))
-    ressource = db.Column(db.String(20))
-    module    = db.Column(db.String(100))
-    nom       = db.Column(db.String(200))
-    url       = db.Column(db.String(500))
-    texte     = db.Column(db.Text, default='')
+    id            = db.Column(db.Integer, primary_key=True)
+    annee         = db.Column(db.String(10))
+    semestre      = db.Column(db.String(5))
+    ressource     = db.Column(db.String(20))
+    module        = db.Column(db.String(100))
+    nom           = db.Column(db.String(200))
+    url           = db.Column(db.String(500))
+    texte         = db.Column(db.Text, default='')
+    date_creation = db.Column(db.String(50), default='')
 
 class Utilisateur(db.Model):
-    id        = db.Column(db.Integer, primary_key=True)
-    nom       = db.Column(db.String(100))
-    prenom    = db.Column(db.String(100))
-    email     = db.Column(db.String(200), unique=True)
-    niveau    = db.Column(db.String(50))
-    password  = db.Column(db.String(200))
-    actif     = db.Column(db.Boolean, default=True)
-    premium   = db.Column(db.Boolean, default=False)
+    id               = db.Column(db.Integer, primary_key=True)
+    nom              = db.Column(db.String(100))
+    prenom           = db.Column(db.String(100))
+    email            = db.Column(db.String(200), unique=True)
+    niveau           = db.Column(db.String(50))
+    password         = db.Column(db.String(200))
+    actif            = db.Column(db.Boolean, default=True)
+    premium          = db.Column(db.Boolean, default=False)
     date_inscription = db.Column(db.String(50))
 
+class Favori(db.Model):
+    id             = db.Column(db.Integer, primary_key=True)
+    utilisateur_id = db.Column(db.Integer, db.ForeignKey('utilisateur.id'), nullable=False)
+    fichier_id     = db.Column(db.Integer, db.ForeignKey('fichier.id'), nullable=False)
+    date_creation  = db.Column(db.String(50))
+
+class Consultation(db.Model):
+    id                 = db.Column(db.Integer, primary_key=True)
+    utilisateur_id     = db.Column(db.Integer, db.ForeignKey('utilisateur.id'), nullable=False)
+    fichier_id         = db.Column(db.Integer, db.ForeignKey('fichier.id'), nullable=False)
+    date_consultation  = db.Column(db.String(50))
+
+# ── HELPERS ─────────────────
 def extraire_texte(file_bytes):
     texte = ''
     try:
@@ -76,6 +92,7 @@ def extraire_texte_depuis_url(url):
         print(f"Erreur téléchargement: {e}")
         return ''
 
+# ── SERVE HTML ─────────────────
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -88,6 +105,7 @@ def admin():
 def chat_page():
     return send_from_directory('.', 'chat.html')
 
+# ── AUTH ─────────────────
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
@@ -110,7 +128,6 @@ def inscription():
     data = request.json
     if Utilisateur.query.filter_by(email=data.get('email')).first():
         return jsonify({'success': False, 'error': 'Email déjà utilisé'}), 400
-    from datetime import datetime
     u = Utilisateur(
         nom=data.get('nom'),
         prenom=data.get('prenom'),
@@ -152,6 +169,7 @@ def me():
         return jsonify({'connecte': True, 'prenom': session.get('user_nom'), 'premium': session.get('user_premium', False)})
     return jsonify({'connecte': False})
 
+# ── UPLOAD / DELETE ─────────────────
 @app.route('/api/admin/upload', methods=['POST'])
 def upload_fichier():
     if not session.get('admin'):
@@ -175,7 +193,11 @@ def upload_fichier():
         unique_filename = True,
         access_mode     = "public"
     )
-    f = Fichier(annee=annee, semestre=semestre, ressource=ressource, module=module, nom=nom, url=result['secure_url'], texte=texte)
+    f = Fichier(
+        annee=annee, semestre=semestre, ressource=ressource, module=module,
+        nom=nom, url=result['secure_url'], texte=texte,
+        date_creation=datetime.now().strftime("%d/%m/%Y %H:%M")
+    )
     db.session.add(f)
     db.session.commit()
     return jsonify({'success': True})
@@ -190,6 +212,7 @@ def delete_fichier(id):
         db.session.commit()
     return jsonify({'success': True})
 
+# ── GET FICHIERS ─────────────────
 @app.route('/api/fichiers')
 def get_fichiers():
     if not session.get('user_id') and not session.get('admin'):
@@ -198,8 +221,13 @@ def get_fichiers():
     semestre  = request.args.get('semestre')
     ressource = request.args.get('ressource')
     module    = request.args.get('module')
-    fichiers  = Fichier.query.filter_by(annee=annee, semestre=semestre, ressource=ressource, module=module).all()
-    return jsonify([{'id': f.id, 'nom': f.nom, 'url': f.url} for f in fichiers])
+    fichiers  = Fichier.query.filter_by(
+        annee=annee, semestre=semestre, ressource=ressource, module=module
+    ).all()
+    return jsonify([{
+        'id': f.id, 'nom': f.nom, 'url': f.url,
+        'date_creation': f.date_creation or ''
+    } for f in fichiers])
 
 @app.route('/api/admin/fichiers')
 def get_all_fichiers():
@@ -213,20 +241,39 @@ def get_all_fichiers():
     if semestre:  query = query.filter_by(semestre=semestre)
     if ressource: query = query.filter_by(ressource=ressource)
     fichiers = query.all()
-    return jsonify([{'id': f.id, 'annee': f.annee, 'semestre': f.semestre, 'ressource': f.ressource, 'module': f.module, 'nom': f.nom, 'url': f.url} for f in fichiers])
+    return jsonify([{
+        'id': f.id, 'annee': f.annee, 'semestre': f.semestre,
+        'ressource': f.ressource, 'module': f.module,
+        'nom': f.nom, 'url': f.url, 'date_creation': f.date_creation or ''
+    } for f in fichiers])
 
+# ── RECHERCHE ─────────────────
+@app.route('/api/recherche')
+def recherche():
+    q = request.args.get('q', '').lower()
+    if not q:
+        return jsonify([])
+    fichiers = Fichier.query.all()
+    resultats = []
+    for f in fichiers:
+        if q in f.nom.lower() or q in f.module.lower() or (f.texte and q in f.texte.lower()):
+            resultats.append({
+                'id': f.id, 'nom': f.nom, 'annee': f.annee,
+                'semestre': f.semestre, 'ressource': f.ressource,
+                'module': f.module, 'url': f.url
+            })
+    return jsonify(resultats[:20])
+
+# ── EXTRACTION (admin) ─────────────────
 @app.route('/api/admin/extraire_textes', methods=['POST'])
 def extraire_textes_anciens():
     if not session.get('admin'):
         return jsonify({'error': 'Non autorisé'}), 401
-
     fichiers = Fichier.query.filter(
         (Fichier.texte == None) | (Fichier.texte == '')
     ).limit(3).all()
-
     if not fichiers:
         return jsonify({'success': True, 'traites': 0, 'total': 0, 'termine': True})
-
     traites = 0
     for f in fichiers:
         try:
@@ -237,16 +284,12 @@ def extraire_textes_anciens():
                 traites += 1
         except Exception as e:
             print(f"Erreur fichier {f.id}: {e}")
-
     restants = Fichier.query.filter(
         (Fichier.texte == None) | (Fichier.texte == '')
     ).count()
-
     return jsonify({
-        'success': True,
-        'traites': traites,
-        'total': restants,
-        'termine': restants == 0
+        'success': True, 'traites': traites,
+        'total': restants, 'termine': restants == 0
     })
 
 @app.route('/api/admin/fichiers_sans_texte')
@@ -266,13 +309,9 @@ def get_fichier(id):
     if not f:
         return jsonify({'error': 'Not found'}), 404
     return jsonify({
-        'id': f.id,
-        'nom': f.nom,
-        'url': f.url,
-        'annee': f.annee,
-        'semestre': f.semestre,
-        'ressource': f.ressource,
-        'module': f.module
+        'id': f.id, 'nom': f.nom, 'url': f.url,
+        'annee': f.annee, 'semestre': f.semestre,
+        'ressource': f.ressource, 'module': f.module
     })
 
 @app.route('/api/admin/maj_texte/<int:id>', methods=['POST'])
@@ -287,6 +326,88 @@ def maj_texte(id):
     db.session.commit()
     return jsonify({'success': True})
 
+# ── FAVORIS ─────────────────
+@app.route('/api/favoris', methods=['GET'])
+def get_favoris():
+    if not session.get('user_id'):
+        return jsonify([])
+    favs = Favori.query.filter_by(utilisateur_id=session['user_id']).all()
+    ids = [f.fichier_id for f in favs]
+    fichiers = Fichier.query.filter(Fichier.id.in_(ids)).all() if ids else []
+    return jsonify([{'id': f.id, 'nom': f.nom, 'url': f.url, 'date_creation': f.date_creation} for f in fichiers])
+
+@app.route('/api/favoris/<int:fichier_id>', methods=['POST'])
+def ajouter_favori(fichier_id):
+    if not session.get('user_id'):
+        return jsonify({'error': 'Non connecté'}), 401
+    if Favori.query.filter_by(utilisateur_id=session['user_id'], fichier_id=fichier_id).first():
+        return jsonify({'success': True})  # déjà en favori
+    fav = Favori(
+        utilisateur_id=session['user_id'],
+        fichier_id=fichier_id,
+        date_creation=datetime.now().strftime("%d/%m/%Y %H:%M")
+    )
+    db.session.add(fav)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/favoris/<int:fichier_id>', methods=['DELETE'])
+def supprimer_favori(fichier_id):
+    if not session.get('user_id'):
+        return jsonify({'error': 'Non connecté'}), 401
+    Favori.query.filter_by(utilisateur_id=session['user_id'], fichier_id=fichier_id).delete()
+    db.session.commit()
+    return jsonify({'success': True})
+
+# ── CONSULTATIONS ─────────────────
+@app.route('/api/consultations', methods=['POST'])
+def enregistrer_consultation():
+    if not session.get('user_id'):
+        return jsonify({'error': 'Non connecté'}), 401
+    data = request.json
+    fichier_id = data.get('fichier_id')
+    if not fichier_id:
+        return jsonify({'error': 'fichier_id manquant'}), 400
+    c = Consultation(
+        utilisateur_id=session['user_id'],
+        fichier_id=fichier_id,
+        date_consultation=datetime.now().strftime("%d/%m/%Y %H:%M")
+    )
+    db.session.add(c)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/consultations', methods=['GET'])
+def get_consultations():
+    if not session.get('user_id'):
+        return jsonify([])
+    cons = Consultation.query.filter_by(utilisateur_id=session['user_id'])\
+        .order_by(Consultation.id.desc()).limit(10).all()
+    ids = [c.fichier_id for c in cons]
+    fichiers = Fichier.query.filter(Fichier.id.in_(ids)).all() if ids else []
+    return jsonify([{'id': f.id, 'nom': f.nom, 'url': f.url} for f in fichiers])
+
+# ── ADMIN ACTIVITÉ UTILISATEUR ─────────────────
+@app.route('/api/admin/utilisateur/<int:id>/activite')
+def get_activite_utilisateur(id):
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    u = Utilisateur.query.get(id)
+    if not u:
+        return jsonify({'error': 'Utilisateur introuvable'}), 404
+    favs = Favori.query.filter_by(utilisateur_id=id).all()
+    fich_ids = [f.fichier_id for f in favs]
+    fichiers_fav = Fichier.query.filter(Fichier.id.in_(fich_ids)).all() if fich_ids else []
+    cons = Consultation.query.filter_by(utilisateur_id=id)\
+        .order_by(Consultation.id.desc()).limit(20).all()
+    cons_ids = [c.fichier_id for c in cons]
+    fichiers_cons = Fichier.query.filter(Fichier.id.in_(cons_ids)).all() if cons_ids else []
+    return jsonify({
+        'favoris': [{'id': f.id, 'nom': f.nom} for f in fichiers_fav],
+        'consultations': [{'id': f.id, 'nom': f.nom, 'date': c.date_consultation} for c,f in zip(cons, fichiers_cons)]
+    })
+
+# ── CHAT ─────────────────
 @app.route('/api/chat', methods=['POST'])
 def chat():
     if not session.get('user_id') and not session.get('admin'):
@@ -296,39 +417,62 @@ def chat():
     if not question:
         return jsonify({'error': 'Message vide'}), 400
 
-    fichiers = Fichier.query.all()
+    # Commandes spéciales
+    if question.startswith('/'):
+        if question == '/help':
+            return jsonify({'success': True, 'answer': """Commandes disponibles :
+/liste <annee> : liste les modules d'une année (ex: /liste 1a)
+/modules <annee> <semestre> : liste les modules d'un semestre
+/recent : voir les derniers fichiers ajoutés
+/help : cette aide."""})
+        elif question.startswith('/liste'):
+            annee = question[7:].strip()
+            fichiers = Fichier.query.filter_by(annee=annee).all()
+            if fichiers:
+                modules = sorted(set(f.module for f in fichiers))
+                msg = "Modules de l'année " + annee + " :\n" + "\n".join(modules)
+            else:
+                msg = "Aucun fichier trouvé."
+            return jsonify({'success': True, 'answer': msg})
+        elif question.startswith('/modules'):
+            parts = question[9:].strip().split()
+            if len(parts) >= 2:
+                annee, semestre = parts[0], parts[1]
+                fichiers = Fichier.query.filter_by(annee=annee, semestre=semestre).all()
+                if fichiers:
+                    modules = sorted(set(f.module for f in fichiers))
+                    msg = f"Modules de {annee} {semestre} :\n" + "\n".join(modules)
+                else:
+                    msg = "Aucun fichier trouvé."
+                return jsonify({'success': True, 'answer': msg})
+        elif question == '/recent':
+            fichiers = Fichier.query.order_by(Fichier.date_creation.desc()).limit(5).all()
+            if fichiers:
+                msg = "Derniers fichiers ajoutés :\n" + "\n".join(f"• {f.nom} ({f.date_creation})" for f in fichiers)
+            else:
+                msg = "Aucun fichier récent."
+            return jsonify({'success': True, 'answer': msg})
 
+    # Réponse IA normal
+    fichiers = Fichier.query.all()
     tous_fichiers = []
     for f in fichiers:
         info = f"[{f.annee} | {f.semestre} | {f.ressource} | {f.module}] — {f.nom}"
         tous_fichiers.append({
-            'info': info,
-            'module': f.module or '',
-            'nom': f.nom or '',
-            'texte': f.texte or '',
-            'annee': f.annee or '',
-            'semestre': f.semestre or ''
+            'info': info, 'module': f.module or '', 'nom': f.nom or '',
+            'texte': f.texte or '', 'annee': f.annee or '', 'semestre': f.semestre or ''
         })
 
     question_lower = question.lower()
     mots_question = question_lower.split()
-
-    pertinents = []
-    autres = []
+    pertinents, autres = [], []
     for f in tous_fichiers:
-        score = 0
-        for mot in mots_question:
-            if mot in f['module'].lower() or mot in f['nom'].lower() or mot in f['texte'].lower():
-                score += 1
-        if score > 0:
-            pertinents.append(f)
-        else:
-            autres.append(f)
+        score = sum(1 for mot in mots_question if mot in f['module'].lower()
+                    or mot in f['nom'].lower() or mot in f['texte'].lower())
+        (pertinents if score > 0 else autres).append(f)
 
     ordonnes = pertinents + autres
-
     contexte_fichiers = [f['info'] for f in ordonnes[:100]]
-
     textes_pertinents = []
     for f in pertinents[:5]:
         if f['texte']:
@@ -337,11 +481,7 @@ def chat():
                 f"=== {f['nom']} ({f['module']} - {f['annee']} {f['semestre']}) ===\n{extrait}"
             )
 
-    extraits_texte = ""
-    if textes_pertinents:
-        extraits_texte = "**Contenu des cours pertinents :**\n" + "\n\n".join(textes_pertinents[:5])
-    else:
-        extraits_texte = "Aucun extrait de cours spécifique trouvé. Réponds de manière générale mais précise."
+    extraits_texte = "**Contenu des cours pertinents :**\n" + "\n\n".join(textes_pertinents) if textes_pertinents else "Aucun extrait spécifique trouvé."
 
     system_prompt = f"""Tu es VetBot, assistant IA spécialisé en médecine vétérinaire pour le portail VetStudy.  
 Tu réponds à des étudiants vétérinaires. Utilise exclusivement les extraits de cours ci-dessous pour répondre.  
@@ -362,7 +502,6 @@ Règles de réponse TRÈS IMPORTANTES :
 Liste des fichiers pertinents (pour référence) :
 {chr(10).join(contexte_fichiers[:100])}
 """
-
     try:
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -392,6 +531,7 @@ Liste des fichiers pertinents (pour référence) :
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ── UTILISATEURS ─────────────────
 @app.route('/api/admin/utilisateurs')
 def get_utilisateurs():
     if not session.get('admin'):
@@ -406,8 +546,7 @@ def get_utilisateurs():
 
 @app.route('/api/admin/utilisateur/<int:id>/toggle_actif', methods=['POST'])
 def toggle_actif(id):
-    if not session.get('admin'):
-        return jsonify({'error': 'Non autorisé'}), 401
+    if not session.get('admin'): return jsonify({'error': 'Non autorisé'}), 401
     u = Utilisateur.query.get(id)
     if u:
         u.actif = not u.actif
@@ -416,8 +555,7 @@ def toggle_actif(id):
 
 @app.route('/api/admin/utilisateur/<int:id>/toggle_premium', methods=['POST'])
 def toggle_premium(id):
-    if not session.get('admin'):
-        return jsonify({'error': 'Non autorisé'}), 401
+    if not session.get('admin'): return jsonify({'error': 'Non autorisé'}), 401
     u = Utilisateur.query.get(id)
     if u:
         u.premium = not u.premium
@@ -426,16 +564,22 @@ def toggle_premium(id):
 
 @app.route('/api/admin/utilisateur/<int:id>', methods=['DELETE'])
 def delete_utilisateur(id):
-    if not session.get('admin'):
-        return jsonify({'error': 'Non autorisé'}), 401
+    if not session.get('admin'): return jsonify({'error': 'Non autorisé'}), 401
     u = Utilisateur.query.get(id)
     if u:
         db.session.delete(u)
         db.session.commit()
     return jsonify({'success': True})
 
+# ── INIT DB ─────────────────
 with app.app_context():
     db.create_all()
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text('ALTER TABLE fichier ADD COLUMN date_creation TEXT DEFAULT \'\''))
+            conn.commit()
+    except:
+        pass
     try:
         with db.engine.connect() as conn:
             conn.execute(db.text('ALTER TABLE fichier ADD COLUMN texte TEXT DEFAULT \'\''))
