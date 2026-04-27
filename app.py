@@ -246,6 +246,44 @@ def extraire_textes_anciens():
         'termine': restants == 0
     })
 
+@app.route('/api/admin/fichiers_sans_texte')
+def fichiers_sans_texte():
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    fichiers = Fichier.query.filter(
+        (Fichier.texte == None) | (Fichier.texte == '')
+    ).all()
+    return jsonify({'ids': [f.id for f in fichiers]})
+
+@app.route('/api/admin/fichier/<int:id>')
+def get_fichier(id):
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    f = Fichier.query.get(id)
+    if not f:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify({
+        'id': f.id,
+        'nom': f.nom,
+        'url': f.url,
+        'annee': f.annee,
+        'semestre': f.semestre,
+        'ressource': f.ressource,
+        'module': f.module
+    })
+
+@app.route('/api/admin/maj_texte/<int:id>', methods=['POST'])
+def maj_texte(id):
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    f = Fichier.query.get(id)
+    if not f:
+        return jsonify({'error': 'Fichier introuvable'}), 404
+    data = request.json
+    f.texte = data.get('texte', '')
+    db.session.commit()
+    return jsonify({'success': True})
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     if not session.get('user_id') and not session.get('admin'):
