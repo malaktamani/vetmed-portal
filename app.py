@@ -318,7 +318,7 @@ def chat():
     for f in tous_fichiers:
         score = 0
         for mot in mots_question:
-            if mot in f['module'].lower() or mot in f['nom'].lower():
+            if mot in f['module'].lower() or mot in f['nom'].lower() or mot in f['texte'].lower():
                 score += 1
         if score > 0:
             pertinents.append(f)
@@ -327,35 +327,38 @@ def chat():
 
     ordonnes = pertinents + autres
 
-    # Réduit à 100 fichiers listés pour rester sous la limite de tokens
     contexte_fichiers = [f['info'] for f in ordonnes[:100]]
 
-    # Seulement 3 extraits de 3000 caractères max
     textes_pertinents = []
-    for f in pertinents[:3]:
+    for f in pertinents[:5]:
         if f['texte']:
             extrait = f['texte'][:3000]
             textes_pertinents.append(
                 f"=== {f['nom']} ({f['module']} - {f['annee']} {f['semestre']}) ===\n{extrait}"
             )
 
-    system_prompt = f"""Tu es VetBot, assistant IA du portail VetStudy, dédié aux étudiants en médecine vétérinaire.
+    extraits_texte = ""
+    if textes_pertinents:
+        extraits_texte = "**Contenu des cours pertinents :**\n" + "\n\n".join(textes_pertinents[:5])
+    else:
+        extraits_texte = "Aucun extrait de cours spécifique trouvé. Réponds de manière générale mais précise."
 
-Tu as accès à la liste des fichiers disponibles (cours, TD, TP, résumés) et, quand c'est pertinent, au contenu textuel de certains documents.
+    system_prompt = f"""Tu es VetBot, assistant IA spécialisé en médecine vétérinaire pour le portail VetStudy.  
+Tu réponds à des étudiants vétérinaires. Utilise exclusivement les extraits de cours ci-dessous pour répondre.  
+Si l'information n'y figure pas, indique-le clairement et propose de chercher dans un autre module.
 
 Règles de réponse :
-- Sois clair, pédagogique et structuré.
-- Utilise des titres, des listes à puces et des paragraphes courts.
-- Si tu expliques un concept, donne une définition, un mécanisme, et un exemple concret.
-- Si la question porte sur la disponibilité d'un cours, réponds en indiquant l'année, le semestre, le type de ressource et le module.
-- Ne liste jamais plus de 10 fichiers à la fois, sauf demande explicite.
-- Si tu ne trouves pas l'information, propose des alternatives ou redirige l'utilisateur.
+- Rédige en français avec un style académique mais pédagogique.
+- Structure ta réponse avec des titres, sous-titres et listes à puces.
+- Ne mentionne que des espèces, données et mécanismes pertinents en médecine vétérinaire.
+- Si tu cites un extrait, indique le nom du fichier source entre parenthèses.
+- Sois concis et évite les généralités humaines sauf contexte explicite.
+- Si la question demande des chiffres, donne-les s'ils sont disponibles, sinon précise qu'ils ne se trouvent pas dans les documents fournis.
 
-Contexte actuel :
+{extraits_texte}
+
+Liste des 100 fichiers les plus pertinents (pour référence) :
 {chr(10).join(contexte_fichiers[:100])}
-
-Extraits de cours pertinents :
-{chr(10).join(textes_pertinents[:3]) if textes_pertinents else "Aucun extrait spécifique trouvé."}
 """
 
     try:
@@ -367,7 +370,8 @@ Extraits de cours pertinents :
             },
             json={
                 "model": "llama-3.3-70b-versatile",
-                "max_tokens": 1500,
+                "max_tokens": 2000,
+                "temperature": 0.3,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": question}
