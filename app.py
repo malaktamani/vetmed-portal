@@ -280,7 +280,7 @@ def maj_texte(id):
     if not f:
         return jsonify({'error': 'Fichier introuvable'}), 404
     data = request.json
-    f.texte = data.get('texte', '')
+    f.texte = data.get('texte', '').replace('\x00', '')
     db.session.commit()
     return jsonify({'success': True})
 
