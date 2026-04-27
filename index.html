@@ -75,6 +75,7 @@
       display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(10px); background: rgba(10,10,15,0.8);
+      flex-wrap: wrap; gap: 10px;
     }
     .logo { display: flex; align-items: center; gap: 10px; }
     .logo-icon {
@@ -84,6 +85,28 @@
     }
     .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; }
     .logo-text span { color: var(--accent); }
+
+    /* ── SEARCH BAR ── */
+    .search-wrapper { position: relative; flex: 1; max-width: 350px; margin: 0 1rem; }
+    .search-wrapper input {
+      width: 100%; padding: 10px 14px; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: 13px; outline: none; transition: border-color 0.2s;
+    }
+    .search-wrapper input:focus { border-color: var(--accent); }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 0 0 12px 12px; max-height: 300px; overflow-y: auto;
+      display: none; z-index: 50;
+    }
+    .search-results .sr-item {
+      padding: 10px 14px; cursor: pointer; font-size: 13px;
+      border-bottom: 1px solid var(--border); transition: background 0.2s;
+    }
+    .search-results .sr-item:hover { background: var(--bg3); }
+    .search-results .sr-item .sr-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
     .user-info { display: flex; align-items: center; gap: 12px; }
     .user-badge {
       background: rgba(124,106,247,0.15); color: var(--accent);
@@ -203,7 +226,7 @@
       border-radius: 10px; padding: 0.9rem 1.2rem;
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
-    .fichier-nom { font-size: 14px; font-weight: 500; }
+    .fichier-nom { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
     .fichier-btn {
       background: rgba(124,106,247,0.15); color: var(--accent);
       border: 1px solid rgba(124,106,247,0.3); border-radius: 8px;
@@ -211,6 +234,22 @@
       text-decoration: none; white-space: nowrap; transition: all 0.2s;
     }
     .fichier-btn:hover { background: rgba(124,106,247,0.3); }
+
+    /* ── FAVORI STAR ── */
+    .fav-star {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 1.2rem; transition: color 0.2s; padding: 0 4px; line-height: 1;
+    }
+    .fav-star:hover { color: var(--accent3); }
+    .fav-star.active { color: var(--accent3); }
+
+    /* ── BADGE NEW ── */
+    .badge-new {
+      background: var(--success); color: var(--bg);
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+      margin-left: 6px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
     .btn-back {
       margin-top: 1.5rem; padding: 10px 24px;
       background: rgba(124,106,247,0.15); color: var(--accent);
@@ -219,6 +258,44 @@
     }
     .btn-back:hover { background: rgba(124,106,247,0.3); }
     .loading { color: var(--muted); font-size: 14px; padding: 1rem 0; }
+
+    /* ── USER SECTIONS (FAVORIS / HISTORIQUE) ── */
+    .user-sections-wrap { position: relative; z-index: 10; padding: 0 2.5rem 2rem; }
+    .user-section {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .user-section h3 {
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;
+    }
+    .user-section .file-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0; border-bottom: 1px solid var(--border); gap: 10px;
+    }
+    .user-section .file-row:last-child { border-bottom: none; }
+    .user-section .file-row span { font-size: 13px; flex: 1; }
+    .user-section .file-row a {
+      background: rgba(124,106,247,0.1); color: var(--accent);
+      border: 1px solid rgba(124,106,247,0.2); border-radius: 6px;
+      padding: 4px 10px; font-size: 12px; text-decoration: none; cursor: pointer;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .user-section .file-row a:hover { background: rgba(124,106,247,0.25); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      header { padding: 1rem; flex-direction: column; align-items: flex-start; }
+      .search-wrapper { max-width: 100%; margin: 0; width: 100%; }
+      .user-info { margin-top: 0.5rem; }
+      .main { padding: 1rem; }
+      .breadcrumb { padding: 0.5rem 1rem; }
+      .nav-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 1.8rem; }
+      .result-wrap { max-width: 100%; }
+      .user-sections-wrap { padding: 0 1rem 1rem; }
+      .form-grid-2 { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -297,6 +374,11 @@
       <div class="logo-icon">🐾</div>
       <div class="logo-text">Vet<span>Study</span></div>
     </div>
+    <!-- BARRE DE RECHERCHE -->
+    <div class="search-wrapper">
+      <input type="text" id="searchInput" placeholder="🔍 Rechercher un cours..." oninput="recherche()" onfocus="recherche()">
+      <div class="search-results" id="searchResults"></div>
+    </div>
     <div class="user-info">
       <span class="user-badge" id="userBadge">👤</span>
       <span class="premium-badge" id="premiumBadge" style="display:none">⭐ Premium</span>
@@ -305,14 +387,19 @@
   </header>
   <div class="breadcrumb" id="breadcrumb"></div>
   <div class="main" id="app"></div>
+  <!-- SECTIONS FAVORIS / HISTORIQUE -->
+  <div class="user-sections-wrap" id="userSections"></div>
 </div>
 
 <script src="data.js"></script>
 <script>
 let state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:false };
 let currentUser = null;
+let favoris = [];
+let consultations = [];
+let searchTimeout = null;
 
-// ── AUTH
+// ── AUTH ─────────────────
 function showInscription() {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('inscriptionPage').style.display = 'flex';
@@ -357,23 +444,28 @@ async function inscription() {
 async function deconnexion() {
   await fetch('/api/deconnexion', {method:'POST'});
   currentUser = null;
+  favoris = [];
+  consultations = [];
   document.getElementById('siteWrap').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('inscriptionPage').style.display = 'none';
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPassword').value = '';
+  document.getElementById('userSections').innerHTML = '';
   state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:false };
 }
 
-function showSite() {
+async function showSite() {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('inscriptionPage').style.display = 'none';
   document.getElementById('siteWrap').style.display = 'block';
   document.getElementById('userBadge').textContent = '👤 ' + currentUser.prenom;
   if(currentUser.premium) document.getElementById('premiumBadge').style.display = 'inline-flex';
+  await loadUserData();
   render();
 }
 
-// Vérifier si déjà connecté
+// ── SESSION ─────────────────
 async function checkSession() {
   const res  = await fetch('/api/me');
   const data = await res.json();
@@ -383,7 +475,126 @@ async function checkSession() {
   }
 }
 
-// ── NAVIGATION
+// ── FAVORIS & HISTORIQUE ─────────────────
+async function loadUserData() {
+  if(!currentUser) return;
+  try {
+    const [resFav, resCons] = await Promise.all([
+      fetch('/api/favoris'),
+      fetch('/api/consultations')
+    ]);
+    favoris = await resFav.json();
+    consultations = await resCons.json();
+  } catch(e) {
+    favoris = [];
+    consultations = [];
+  }
+  renderUserSections();
+}
+
+function renderUserSections() {
+  const container = document.getElementById('userSections');
+  if(!currentUser || (!favoris.length && !consultations.length)) {
+    container.innerHTML = '';
+    return;
+  }
+  let html = '';
+  if(favoris.length) {
+    html += `<div class="user-section">
+      <h3>⭐ Mes favoris</h3>
+      ${favoris.map(f => `
+        <div class="file-row">
+          <span>📄 ${f.nom}</span>
+          <a href="${f.url}" target="_blank" onclick="registerConsultation(${f.id})">Ouvrir</a>
+        </div>`).join('')}
+    </div>`;
+  }
+  if(consultations.length) {
+    html += `<div class="user-section">
+      <h3>🕘 Historique récent</h3>
+      ${consultations.map(f => `
+        <div class="file-row">
+          <span>📄 ${f.nom}</span>
+          <a href="${f.url}" target="_blank" onclick="registerConsultation(${f.id})">Ouvrir</a>
+        </div>`).join('')}
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+async function registerConsultation(fichierId) {
+  try {
+    await fetch('/api/consultations', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({fichier_id: fichierId})
+    });
+  } catch(e) {}
+}
+
+async function toggleFavori(fichierId, fichierNom, fichierUrl, fichierDateCreation, starEl) {
+  if(!currentUser) return;
+  const isFav = favoris.some(f => f.id == fichierId);
+  if(isFav) {
+    await fetch(`/api/favoris/${fichierId}`, {method:'DELETE'});
+    favoris = favoris.filter(f => f.id != fichierId);
+    starEl.classList.remove('active');
+  } else {
+    await fetch(`/api/favoris/${fichierId}`, {method:'POST'});
+    favoris.push({id: fichierId, nom: fichierNom, url: fichierUrl, date_creation: fichierDateCreation});
+    starEl.classList.add('active');
+  }
+  renderUserSections();
+}
+
+// ── RECHERCHE ─────────────────
+async function recherche() {
+  clearTimeout(searchTimeout);
+  const q = document.getElementById('searchInput').value.trim();
+  const resDiv = document.getElementById('searchResults');
+  if(!q) { resDiv.style.display = 'none'; return; }
+  searchTimeout = setTimeout(async () => {
+    const res = await fetch(`/api/recherche?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if(!data.length) {
+      resDiv.innerHTML = '<div class="sr-item" style="color:var(--muted)">Aucun résultat</div>';
+    } else {
+      resDiv.innerHTML = data.map(f => `
+        <div class="sr-item" onclick="navigateToFile('${f.annee}','${f.semestre}','${f.ressource}','${f.module}')">
+          <div>📄 ${f.nom}</div>
+          <div class="sr-meta">${f.annee} ${f.semestre} · ${f.ressource} · ${f.module}</div>
+        </div>`).join('');
+    }
+    resDiv.style.display = 'block';
+  }, 300);
+}
+
+function navigateToFile(anneeId, semestreId, ressourceId, moduleNom) {
+  const annee = DATA.annees.find(a => a.id === anneeId);
+  const semestre = DATA.semestres.find(s => s.id === semestreId);
+  const ressource = DATA.ressources.find(r => r.id === ressourceId);
+  if(annee && semestre && ressource) {
+    state.annee = annee;
+    state.semestre = semestre;
+    state.ressource = ressource;
+    state.module = moduleNom;
+    state._showAnnees = false;
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+    render();
+  }
+}
+
+// Cacher les résultats de recherche en cliquant ailleurs
+document.addEventListener('click', function(e) {
+  const searchWrapper = document.querySelector('.search-wrapper');
+  const searchResults = document.getElementById('searchResults');
+  if(searchWrapper && searchResults && !searchWrapper.contains(e.target)) {
+    searchResults.style.display = 'none';
+  }
+});
+
+// ── NAVIGATION ─────────────────
 function resetTo(step) {
   const steps = ["annee","semestre","ressource","module"];
   const idx = steps.indexOf(step);
@@ -400,6 +611,16 @@ function goHome() {
 function goAnnees() {
   state = { annee:null, semestre:null, ressource:null, module:null, _showAnnees:true };
   render();
+}
+
+function isNewFile(dateCreation) {
+  if(!dateCreation) return false;
+  const parts = dateCreation.split('/');
+  if(parts.length !== 3) return false;
+  const fileDate = new Date(parts[2], parts[1]-1, parts[0].split(' ')[0]);
+  const now = new Date();
+  const diffDays = (now - fileDate) / (1000 * 60 * 60 * 24);
+  return diffDays <= 7;
 }
 
 function render() {
@@ -546,16 +767,23 @@ function render() {
       } else if(data.length === 0) {
         liste.innerHTML = '<p class="result-msg">Aucun fichier pour l\'instant.<br>Les ressources seront ajoutées bientôt !</p>';
       } else {
-        liste.innerHTML = `<div class="fichiers-liste">${data.map(f => `
+        liste.innerHTML = `<div class="fichiers-liste">${data.map(f => {
+          const isNew = isNewFile(f.date_creation);
+          const isFav = favoris.some(fv => fv.id == f.id);
+          return `
           <div class="fichier-item">
-            <span class="fichier-nom">📄 ${f.nom}</span>
-            <a class="fichier-btn" href="${f.url}" target="_blank">Ouvrir</a>
-          </div>`).join('')}</div>`;
+            <span class="fichier-nom">
+              <button class="fav-star${isFav ? ' active' : ''}" onclick="toggleFavori(${f.id},'${f.nom.replace(/'/g,"\\'")}','${f.url}', '${f.date_creation||''}', this)" title="Ajouter aux favoris">${isFav ? '⭐' : '☆'}</button>
+              📄 ${f.nom}${isNew ? '<span class="badge-new">NOUVEAU</span>' : ''}
+            </span>
+            <a class="fichier-btn" href="${f.url}" target="_blank" onclick="registerConsultation(${f.id})">Ouvrir</a>
+          </div>`;
+        }).join('')}</div>`;
       }
     })
     .catch(() => {
       const liste = document.getElementById('fichiers-liste');
-      if(liste) liste.innerHTML = '<p class="result-msg">Aucun fichier pour l\'instant.</p>';
+      if(liste) liste.innerHTML = '<p class="result-msg">Erreur de chargement.</p>';
     });
 }
 
@@ -564,10 +792,15 @@ function selectSemestre(s)  { state.semestre = s; render(); }
 function selectRessource(r) { state.ressource = r; render(); }
 function selectModule(m)    { state.module = m; render(); }
 
-// Vérifier session au chargement
+// Vérifier session au chargement + recharger après l'ajout d'un favori
+async function refreshCurrentView() {
+  await loadUserData();
+  render();
+}
+
 checkSession();
-</script> 
- 
+</script>
+
   <a href="/chat.html" style="
   position: fixed; bottom: 2rem; right: 2rem;
   width: 56px; height: 56px; border-radius: 50%;
@@ -578,6 +811,6 @@ checkSession();
   z-index: 999; transition: transform 0.2s;"
   onmouseover="this.style.transform='scale(1.1)'"
   onmouseout="this.style.transform='scale(1)'">🤖</a>
-  
+
 </body>
 </html>
