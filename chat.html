@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VetBot — Assistant IA</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
       --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a26;
@@ -37,9 +38,22 @@
     .msg-avatar { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
     .msg.bot .msg-avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
     .msg.user .msg-avatar { background: var(--bg3); border: 1px solid var(--border); }
-    .msg-bubble { max-width: 75%; padding: 0.9rem 1.1rem; border-radius: 14px; font-size: 14px; line-height: 1.6; }
+    .msg-bubble { max-width: 75%; padding: 0.9rem 1.1rem; border-radius: 14px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
     .msg.bot .msg-bubble { background: var(--bg2); border: 1px solid var(--border); border-top-left-radius: 4px; }
     .msg.user .msg-bubble { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border-top-right-radius: 4px; }
+
+    /* Amélioration du rendu markdown dans les bulles */
+    .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 { font-family: 'Syne', sans-serif; font-weight: 700; margin: 0.8rem 0 0.4rem; }
+    .msg-bubble h1 { font-size: 1.3rem; }
+    .msg-bubble h2 { font-size: 1.1rem; }
+    .msg-bubble h3 { font-size: 1rem; }
+    .msg-bubble ul, .msg-bubble ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+    .msg-bubble li { margin-bottom: 0.2rem; }
+    .msg-bubble p { margin-bottom: 0.5rem; }
+    .msg-bubble strong { color: var(--text); font-weight: 600; }
+    .msg-bubble em { color: var(--accent2); font-style: italic; }
+    .msg-bubble code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .msg-bubble pre { background: var(--bg3); padding: 0.8rem; border-radius: 8px; overflow-x: auto; margin: 0.5rem 0; }
 
     .typing { display: none; }
     .typing .msg-bubble { background: var(--bg2); border: 1px solid var(--border); }
@@ -116,6 +130,14 @@
 </div>
 
 <script>
+// Configuration de marked (optionnel)
+marked.setOptions({
+  breaks: true,  // sauts de ligne convertis en <br>
+  gfm: true,     // GitHub Flavored Markdown
+  headerIds: false,
+  mangle: false
+});
+
 async function sendMessage() {
   const input = document.getElementById('userInput');
   const msg = input.value.trim();
@@ -158,9 +180,25 @@ function addMessage(text, role) {
   const messages = document.getElementById('messages');
   const div = document.createElement('div');
   div.className = 'msg ' + role;
+  
+  let content;
+  if (role === 'bot') {
+    // Convertir markdown -> HTML pour les réponses du bot
+    try {
+      content = marked.parse(text);
+    } catch (e) {
+      content = text.replace(/\n/g, '<br>');
+    }
+  } else {
+    // Pour l'utilisateur, échapper le HTML
+    const temp = document.createElement('div');
+    temp.textContent = text;
+    content = temp.innerHTML.replace(/\n/g, '<br>');
+  }
+  
   div.innerHTML = `
     <div class="msg-avatar">${role === 'bot' ? '🤖' : '👤'}</div>
-    <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+    <div class="msg-bubble">${content}</div>
   `;
   messages.appendChild(div);
   scrollToBottom();
