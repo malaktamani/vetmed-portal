@@ -383,15 +383,32 @@ async function uploadAll() {
 
 async function extraireTextes() {
   const btn = document.getElementById('extraireBtn');
+  const msg = document.getElementById('extraireMsg');
   btn.disabled = true;
-  btn.textContent = '⏳ Extraction en cours... (peut prendre quelques minutes)';
-  try {
-    const res = await fetch('/api/admin/extraire_textes', {method:'POST'});
-    const data = await res.json();
-    document.getElementById('extraireMsg').textContent = `✅ ${data.traites} fichiers traités sur ${data.total} !`;
-  } catch(e) {
-    document.getElementById('extraireMsg').textContent = '❌ Erreur lors de l\'extraction.';
+  
+  let termine = false;
+  let totalTraites = 0;
+  
+  while (!termine) {
+    btn.textContent = `⏳ Extraction... (${totalTraites} fichiers traités)`;
+    
+    try {
+      const res = await fetch('/api/admin/extraire_textes', {method:'POST'});
+      const data = await res.json();
+      totalTraites += data.traites;
+      termine = data.termine;
+      
+      if (termine) {
+        msg.textContent = `✅ Terminé ! ${totalTraites} fichiers traités au total. Le chatbot peut maintenant lire le contenu des cours.`;
+      } else {
+        msg.textContent = `⏳ ${totalTraites} fichiers traités... ${data.total} restants.`;
+      }
+    } catch(e) {
+      msg.textContent = '❌ Erreur lors de l\'extraction. Réessaie.';
+      break;
+    }
   }
+  
   btn.disabled = false;
   btn.textContent = '🔍 Extraire le texte de tous les fichiers';
 }
