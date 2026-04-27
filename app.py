@@ -58,9 +58,12 @@ def extraire_texte(file_bytes):
                 if t and len(t.strip()) > 20:
                     texte += t + '\n'
                 else:
-                    img = page.to_image(resolution=200).original
-                    t_ocr = pytesseract.image_to_string(img, lang='fra+eng')
-                    texte += t_ocr + '\n'
+                    try:
+                        img = page.to_image(resolution=200).original
+                        t_ocr = pytesseract.image_to_string(img, lang='fra+eng')
+                        texte += t_ocr + '\n'
+                    except:
+                        pass
     except Exception as e:
         print(f"Erreur extraction: {e}")
     return texte.strip()
@@ -216,14 +219,14 @@ def get_all_fichiers():
 def extraire_textes_anciens():
     if not session.get('admin'):
         return jsonify({'error': 'Non autorisé'}), 401
-    
+
     fichiers = Fichier.query.filter(
         (Fichier.texte == None) | (Fichier.texte == '')
     ).limit(3).all()
-    
+
     if not fichiers:
         return jsonify({'success': True, 'traites': 0, 'total': 0, 'termine': True})
-    
+
     traites = 0
     for f in fichiers:
         try:
@@ -234,11 +237,11 @@ def extraire_textes_anciens():
                 traites += 1
         except Exception as e:
             print(f"Erreur fichier {f.id}: {e}")
-    
+
     restants = Fichier.query.filter(
         (Fichier.texte == None) | (Fichier.texte == '')
     ).count()
-    
+
     return jsonify({
         'success': True,
         'traites': traites,
@@ -295,33 +298,63 @@ def chat():
 
     fichiers = Fichier.query.all()
 
-    contexte_fichiers = []
+    tous_fichiers = []
     for f in fichiers:
         info = f"[{f.annee} | {f.semestre} | {f.ressource} | {f.module}] — {f.nom}"
-        contexte_fichiers.append(info)
+        tous_fichiers.append({
+            'info': info,
+            'module': f.module or '',
+            'nom': f.nom or '',
+            'texte': f.texte or '',
+            'annee': f.annee or '',
+            'semestre': f.semestre or ''
+        })
 
     question_lower = question.lower()
+    mots_question = question_lower.split()
+
+    pertinents = []
+    autres = []
+    for f in tous_fichiers:
+        score = 0
+        for mot in mots_question:
+            if mot in f['module'].lower() or mot in f['nom'].lower():
+                score += 1
+        if score > 0:
+            pertinents.append(f)
+        else:
+            autres.append(f)
+
+    ordonnes = pertinents + autres
+
+    contexte_fichiers = [f['info'] for f in ordonnes[:150]]
+
     textes_pertinents = []
-    for f in fichiers:
-        if f.texte and any(mot in question_lower for mot in [f.module.lower(), f.nom.lower()]):
-            textes_pertinents.append(f"=== {f.nom} ({f.module} - {f.annee} {f.semestre}) ===\n{f.texte[:3000]}")
+    for f in pertinents[:10]:
+        if f['texte']:
+            extrait = f['texte'][:5000]
+            textes_pertinents.append(
+                f"=== {f['nom']} ({f['module']} - {f['annee']} {f['semestre']}) ===\n{extrait}"
+            )
 
-    system_prompt = f"""Tu es VetBot, l'assistant IA du portail VetStudy — une plateforme de ressources pour les étudiants en médecine vétérinaire.
+    system_prompt = f"""Tu es VetBot, assistant IA du portail VetStudy, dédié aux étudiants en médecine vétérinaire.
 
-Tu as accès à la liste complète des fichiers disponibles sur le site :
-{chr(10).join(contexte_fichiers[:100])}
+Tu as accès à la liste des fichiers disponibles (cours, TD, TP, résumés) et, quand c'est pertinent, au contenu textuel de certains documents.
 
-{"Tu as aussi accès au contenu de certains cours pertinents :" + chr(10) + chr(10).join(textes_pertinents[:5]) if textes_pertinents else ""}
+Règles de réponse :
+- Sois clair, pédagogique et structuré.
+- Utilise des titres, des listes à puces et des paragraphes courts.
+- Si tu expliques un concept, donne une définition, un mécanisme, et un exemple concret.
+- Si la question porte sur la disponibilité d'un cours, réponds en indiquant l'année, le semestre, le type de ressource et le module.
+- Ne liste jamais plus de 10 fichiers à la fois, sauf demande explicite.
+- Si tu ne trouves pas l'information, propose des alternatives ou redirige l'utilisateur.
 
-Tes capacités :
-- Dire quels fichiers sont disponibles et où les trouver (année, semestre, type, module)
-- Répondre aux questions sur le contenu des cours
-- Expliquer des concepts vétérinaires
-- Traduire du contenu français ↔ anglais
-- Résumer des cours
+Contexte actuel :
+{chr(10).join(contexte_fichiers[:150])}
 
-Réponds toujours en français sauf si on te demande autre chose.
-Sois précis, pédagogique et utile pour les étudiants vétérinaires."""
+Extraits de cours pertinents :
+{chr(10).join(textes_pertinents[:10]) if textes_pertinents else "Aucun extrait spécifique trouvé."}
+"""
 
     try:
         response = requests.post(
