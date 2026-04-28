@@ -477,6 +477,39 @@ def chat_with_openrouter(question, system_prompt):
         print(f"Erreur OpenRouter: {e}")
         return None
 
+def chat_with_openrouter_backup(question, system_prompt):
+    """Modèle de secours gratuit sur OpenRouter (quota séparé)."""
+    if not OPENROUTER_API_KEY:
+        return None
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://vetmed-portal-production.up.railway.app",
+                "X-Title": "VetStudy"
+            },
+            json={
+                "model": "google/gemma-7b-it:free",
+                "max_tokens": 1500,
+                "temperature": 0.3,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ]
+            },
+            timeout=30
+        )
+        result = response.json()
+        if 'choices' in result:
+            return result['choices'][0]['message']['content']
+        else:
+            return None
+    except Exception as e:
+        print(f"Erreur OpenRouter backup: {e}")
+        return None
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     if not session.get('user_id') and not session.get('admin'):
@@ -485,6 +518,24 @@ def chat():
     question = data.get('message', '')
     if not question:
         return jsonify({'error': 'Message vide'}), 400
+
+    # Détection d'une année spécifique dans la question
+    annee_specifique = None
+    for annee_id, mots_annee in [('1a', ['1ère', '1ere', 'première', 'premiere', '1er']),
+                                 ('2a', ['2ème', '2eme', 'deuxième', 'deuxieme', '2nd']),
+                                 ('3a', ['3ème', '3eme', 'troisième', 'troisieme']),
+                                 ('4a', ['4ème', '4eme', 'quatrième', 'quatrieme']),
+                                 ('5a', ['5ème', '5eme', 'cinquième', 'cinquieme']),
+                                 ('6a', ['6ème', '6eme', 'sixième', 'sixieme'])]:
+        if any(mot in question.lower() for mot in mots_annee):
+            annee_specifique = annee_id
+            break
+
+    # Si une année est spécifiée, ne garder que les fichiers de cette année
+    if annee_specifique:
+        fichiers = Fichier.query.filter_by(annee=annee_specifique).all()
+    else:
+        fichiers = Fichier.query.all()
 
     # Commandes spéciales
     if question.startswith('/'):
@@ -496,9 +547,9 @@ def chat():
 /help : cette aide."""})
         elif question.startswith('/liste'):
             annee = question[7:].strip()
-            fichiers = Fichier.query.filter_by(annee=annee).all()
-            if fichiers:
-                modules = sorted(set(f.module for f in fichiers))
+            fichiers_cmd = Fichier.query.filter_by(annee=annee).all()
+            if fichiers_cmd:
+                modules = sorted(set(f.module for f in fichiers_cmd))
                 msg = "Modules de l'année " + annee + " :\n" + "\n".join(modules)
             else:
                 msg = "Aucun fichier trouvé."
@@ -507,23 +558,27 @@ def chat():
             parts = question[9:].strip().split()
             if len(parts) >= 2:
                 annee, semestre = parts[0], parts[1]
-                fichiers = Fichier.query.filter_by(annee=annee, semestre=semestre).all()
-                if fichiers:
-                    modules = sorted(set(f.module for f in fichiers))
+                fichiers_cmd = Fichier.query.filter_by(annee=annee, semestre=semestre).all()
+                if fichiers_cmd:
+                    modules = sorted(set(f.module for f in fichiers_cmd))
                     msg = f"Modules de {annee} {semestre} :\n" + "\n".join(modules)
                 else:
                     msg = "Aucun fichier trouvé."
                 return jsonify({'success': True, 'answer': msg})
         elif question == '/recent':
-            fichiers = Fichier.query.order_by(Fichier.date_creation.desc()).limit(5).all()
-            if fichiers:
-                msg = "Derniers fichiers ajoutés :\n" + "\n".join(f"• {f.nom} ({f.date_creation})" for f in fichiers)
+            fichiers_cmd = Fichier.query.order_by(Fichier.date_creation.desc()).limit(5).all()
+            if fichiers_cmd:
+                msg = "Derniers fichiers ajoutés :\n" + "\n".join(f"• {f.nom} ({f.date_creation})" for f in fichiers_cmd)
             else:
                 msg = "Aucun fichier récent."
             return jsonify({'success': True, 'answer': msg})
 
+    # Si on est dans une commande spéciale, on ne continue pas
+    if question.startswith('/'):
+        # déjà traité
+        pass
+
     # Réponse IA normal
-    fichiers = Fichier.query.all()
     tous_fichiers = []
     for f in fichiers:
         info = f"[{f.annee} | {f.semestre} | {f.ressource} | {f.module}] — {f.nom}"
@@ -549,10 +604,8 @@ def chat():
 
     # --- DIVERSIFICATION : au moins 12 fichiers par année pour équilibrer ---
     selectionnes = []
-    # 1. Toujours commencer par les 40 plus pertinents
     selectionnes.extend(ordonnes[:40])
 
-    # 2. Ajouter au moins 12 fichiers de chaque année existante
     annees_presentes = sorted(set(f['annee'] for f in ordonnes if f['annee']))
     for annee_id in annees_presentes:
         fichiers_annee = [f for f in ordonnes if f['annee'] == annee_id]
@@ -561,7 +614,6 @@ def chat():
         nouveaux = [f for f in fichiers_annee if f not in selectionnes][:a_ajouter]
         selectionnes.extend(nouveaux)
 
-    # 3. Compléter jusqu'à 100 avec les plus pertinents restants
     for f in ordonnes:
         if len(selectionnes) >= 100:
             break
@@ -600,14 +652,19 @@ Règles de réponse TRÈS IMPORTANTES :
 Liste des fichiers pertinents (pour référence) :
 {chr(10).join(contexte_fichiers[:100])}
 """
-    # --- Nouveau : Groq d'abord, sinon OpenRouter ---
+    # --- Plan A : Groq ---
     answer = chat_with_groq(question, system_prompt)
+    # --- Plan B : OpenRouter Llama ---
     if answer is None:
         answer = chat_with_openrouter(question, system_prompt)
+    # --- Plan C : OpenRouter Gemma (secours) ---
+    if answer is None:
+        answer = chat_with_openrouter_backup(question, system_prompt)
     if answer is None:
         answer = "Désolé, le service de chatbot est temporairement indisponible. Veuillez réessayer plus tard."
 
     return jsonify({'success': True, 'answer': answer})
+
 # ── UTILISATEURS ─────────────────
 @app.route('/api/admin/utilisateurs')
 def get_utilisateurs():
