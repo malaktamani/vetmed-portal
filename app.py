@@ -30,6 +30,7 @@ cloudinary.config(
 ADMIN_PASSWORD = "vetmed2024"
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")  # AJOUTÉ
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 # AJOUTÉ : Configurer Gemini
 if GOOGLE_API_KEY:
@@ -414,23 +415,6 @@ def get_activite_utilisateur(id):
     })
 
 # ── CHAT ─────────────────
-def chat_with_gemini(question, system_prompt):
-    if not GOOGLE_API_KEY:
-        return None
-    try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(
-            [system_prompt, question],
-            generation_config = genai.types.GenerationConfig(
-                max_output_tokens=1500,
-                temperature=0.3
-            )
-        )
-        return response.text
-    except Exception as e:
-        print(f"Erreur Gemini: {e}")
-        return None
-
 def chat_with_groq(question, system_prompt):
     if not GROQ_API_KEY:
         return None
@@ -457,7 +441,40 @@ def chat_with_groq(question, system_prompt):
             return result['choices'][0]['message']['content']
         else:
             return None
-    except:
+    except Exception as e:
+        print(f"Erreur Groq: {e}")
+        return None
+
+def chat_with_openrouter(question, system_prompt):
+    if not OPENROUTER_API_KEY:
+        return None
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://vetmed-portal-production.up.railway.app",
+                "X-Title": "VetStudy"
+            },
+            json={
+                "model": "meta-llama/llama-3.1-8b-instruct:free",
+                "max_tokens": 2000,
+                "temperature": 0.3,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ]
+            },
+            timeout=30
+        )
+        result = response.json()
+        if 'choices' in result:
+            return result['choices'][0]['message']['content']
+        else:
+            return None
+    except Exception as e:
+        print(f"Erreur OpenRouter: {e}")
         return None
 
 @app.route('/api/chat', methods=['POST'])
@@ -519,14 +536,11 @@ def chat():
     mots_question = question_lower.split()
     pertinents, autres = [], []
     for f in tous_fichiers:
-                # Compter combien de mots de la question apparaissent dans le module, le nom ou le texte
         score = 0
         for mot in mots_question:
-            # Chercher le mot dans les métadonnées du fichier
             if mot in f['module'].lower() or mot in f['nom'].lower():
                 score += 1
                 continue
-            # Chercher le mot dans le contenu du fichier (si disponible)
             if f['texte'] and mot in f['texte'].lower():
                 score += 1
         (pertinents if score > 0 else autres).append(f)
@@ -586,15 +600,14 @@ Règles de réponse TRÈS IMPORTANTES :
 Liste des fichiers pertinents (pour référence) :
 {chr(10).join(contexte_fichiers[:100])}
 """
-    # --- Essayer Gemini d'abord, puis Groq en secours ---
-    answer = chat_with_gemini(question, system_prompt)
+    # --- Nouveau : Groq d'abord, sinon OpenRouter ---
+    answer = chat_with_groq(question, system_prompt)
     if answer is None:
-        answer = chat_with_groq(question, system_prompt)
+        answer = chat_with_openrouter(question, system_prompt)
     if answer is None:
         answer = "Désolé, le service de chatbot est temporairement indisponible. Veuillez réessayer plus tard."
 
     return jsonify({'success': True, 'answer': answer})
-
 # ── UTILISATEURS ─────────────────
 @app.route('/api/admin/utilisateurs')
 def get_utilisateurs():
