@@ -10,6 +10,7 @@ from PIL import Image
 import io
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import google.generativeai as genai  # <--- AJOUTÉ
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -28,6 +29,11 @@ cloudinary.config(
 
 ADMIN_PASSWORD = "vetmed2024"
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")  # <--- AJOUTÉ
+
+# <--- AJOUTÉ : Configurer Gemini
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
 
 # ── MODELS ─────────────────
 class Fichier(db.Model):
@@ -408,6 +414,52 @@ def get_activite_utilisateur(id):
     })
 
 # ── CHAT ─────────────────
+def chat_with_gemini(question, system_prompt):
+    if not GOOGLE_API_KEY:
+        return None
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    try:
+        response = model.generate_content(
+            [system_prompt, question],
+            generation_config = genai.types.GenerationConfig(
+                max_output_tokens=1500,
+                temperature=0.3
+            )
+        )
+        return response.text
+    except Exception as e:
+        print(f"Erreur Gemini: {e}")
+        return None
+
+def chat_with_groq(question, system_prompt):
+    if not GROQ_API_KEY:
+        return None
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "max_tokens": 2000,
+                "temperature": 0.3,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ]
+            },
+            timeout=30
+        )
+        result = response.json()
+        if 'choices' in result:
+            return result['choices'][0]['message']['content']
+        else:
+            return None
+    except:
+        return None
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     if not session.get('user_id') and not session.get('admin'):
@@ -502,34 +554,14 @@ Règles de réponse TRÈS IMPORTANTES :
 Liste des fichiers pertinents (pour référence) :
 {chr(10).join(contexte_fichiers[:100])}
 """
-    try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "llama-3.3-70b-versatile",
-                "max_tokens": 2000,
-                "temperature": 0.3,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question}
-                ]
-            },
-            timeout=30
-        )
-        result = response.json()
-        if 'choices' in result:
-            answer = result['choices'][0]['message']['content']
-        elif 'error' in result:
-            answer = "Erreur API : " + str(result['error'])
-        else:
-            answer = "Réponse inattendue : " + str(result)
-        return jsonify({'success': True, 'answer': answer})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    # --- MODIFIÉ : Essayer Gemini d'abord, puis Groq en secours ---
+    answer = chat_with_gemini(question, system_prompt)
+    if answer is None:
+        answer = chat_with_groq(question, system_prompt)
+    if answer is None:
+        answer = "Désolé, le service de chatbot est temporairement indisponible. Veuillez réessayer plus tard."
+
+    return jsonify({'success': True, 'answer': answer})
 
 # ── UTILISATEURS ─────────────────
 @app.route('/api/admin/utilisateurs')
