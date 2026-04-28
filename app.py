@@ -10,7 +10,7 @@ from PIL import Image
 import io
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import google.generativeai as genai  # <--- AJOUTÉ
+import google.generativeai as genai  # AJOUTÉ
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -29,9 +29,9 @@ cloudinary.config(
 
 ADMIN_PASSWORD = "vetmed2024"
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")  # <--- AJOUTÉ
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")  # AJOUTÉ
 
-# <--- AJOUTÉ : Configurer Gemini
+# AJOUTÉ : Configurer Gemini
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -524,7 +524,29 @@ def chat():
         (pertinents if score > 0 else autres).append(f)
 
     ordonnes = pertinents + autres
-    contexte_fichiers = [f['info'] for f in ordonnes[:100]]
+
+    # --- DIVERSIFICATION : au moins 12 fichiers par année pour équilibrer ---
+    selectionnes = []
+    # 1. Toujours commencer par les 40 plus pertinents
+    selectionnes.extend(ordonnes[:40])
+
+    # 2. Ajouter au moins 12 fichiers de chaque année existante
+    annees_presentes = sorted(set(f['annee'] for f in ordonnes if f['annee']))
+    for annee_id in annees_presentes:
+        fichiers_annee = [f for f in ordonnes if f['annee'] == annee_id]
+        deja_pris = len([f for f in selectionnes if f['annee'] == annee_id])
+        a_ajouter = max(0, 12 - deja_pris)
+        nouveaux = [f for f in fichiers_annee if f not in selectionnes][:a_ajouter]
+        selectionnes.extend(nouveaux)
+
+    # 3. Compléter jusqu'à 100 avec les plus pertinents restants
+    for f in ordonnes:
+        if len(selectionnes) >= 100:
+            break
+        if f not in selectionnes:
+            selectionnes.append(f)
+
+    contexte_fichiers = [f['info'] for f in selectionnes[:100]]
     textes_pertinents = []
     for f in pertinents[:5]:
         if f['texte']:
@@ -554,7 +576,7 @@ Règles de réponse TRÈS IMPORTANTES :
 Liste des fichiers pertinents (pour référence) :
 {chr(10).join(contexte_fichiers[:100])}
 """
-    # --- MODIFIÉ : Essayer Gemini d'abord, puis Groq en secours ---
+    # --- Essayer Gemini d'abord, puis Groq en secours ---
     answer = chat_with_gemini(question, system_prompt)
     if answer is None:
         answer = chat_with_groq(question, system_prompt)
