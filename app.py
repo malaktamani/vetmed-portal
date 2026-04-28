@@ -519,8 +519,16 @@ def chat():
     mots_question = question_lower.split()
     pertinents, autres = [], []
     for f in tous_fichiers:
-        score = sum(1 for mot in mots_question if mot in f['module'].lower()
-                    or mot in f['nom'].lower() or mot in f['texte'].lower())
+                # Compter combien de mots de la question apparaissent dans le module, le nom ou le texte
+        score = 0
+        for mot in mots_question:
+            # Chercher le mot dans les métadonnées du fichier
+            if mot in f['module'].lower() or mot in f['nom'].lower():
+                score += 1
+                continue
+            # Chercher le mot dans le contenu du fichier (si disponible)
+            if f['texte'] and mot in f['texte'].lower():
+                score += 1
         (pertinents if score > 0 else autres).append(f)
 
     ordonnes = pertinents + autres
@@ -558,7 +566,9 @@ def chat():
     extraits_texte = "**Contenu des cours pertinents :**\n" + "\n\n".join(textes_pertinents) if textes_pertinents else "Aucun extrait spécifique trouvé."
 
     system_prompt = f"""Tu es VetBot, assistant IA spécialisé en médecine vétérinaire pour le portail VetStudy.  
-Tu réponds à des étudiants vétérinaires. Utilise exclusivement les extraits de cours ci-dessous pour répondre.  
+Tu es un assistant spécialisé en médecine vétérinaire. Ta mission est de répondre aux étudiants en te basant uniquement sur le contenu des cours listés ici.  
+Si la réponse se trouve dans les extraits, cite-les et indique clairement le titre du fichier source (ex: "D'après le fichier 'polyRepro_GestationV2' du module Physiologie de la reproduction de 2ème année...").  
+Si les extraits ne contiennent pas la réponse, ne dis pas "je ne sais pas". Analyse la liste des 100 fichiers qui t'est fournie et donne les noms exacts des fichiers qui pourraient contenir l'information recherchée, avec leur module et leur année.  
 Si l'information n'y figure pas, indique-le clairement et propose de chercher dans un autre module.
 
 Règles de réponse TRÈS IMPORTANTES :
