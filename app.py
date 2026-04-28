@@ -417,8 +417,8 @@ def get_activite_utilisateur(id):
 def chat_with_gemini(question, system_prompt):
     if not GOOGLE_API_KEY:
         return None
-        model = genai.GenerativeModel('gemini-2.0-flash')
     try:
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(
             [system_prompt, question],
             generation_config = genai.types.GenerationConfig(
