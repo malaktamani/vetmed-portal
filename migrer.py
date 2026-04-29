@@ -3,8 +3,8 @@ import psycopg2
 # Ancienne base Railway (URL publique)
 OLD_DB = "postgresql://postgres:zehxzgpFxUSsiqqbTAtAozgxnVROAQdW@shortline.proxy.rlwy.net:50831/railway"
 
-# Nouvelle base Render (URL externe, que tu viens de fournir)
-NEW_DB = "postgresql://vetmed_db_5xf0_user:sZVrrKLnMYzQDHNs5w1FN8AHeCxadt4S@dpg-d7p3jlpj2pic73f1eog0-a.virginia-postgres.render.com/vetmed_db_5xf0"
+# Nouvelle base Render (URL externe + SSL obligatoire)
+NEW_DB = "postgresql://vetmed_db_5xf0_user:sZVrrKLnMYzQDHNs5w1FN8AHeCxadt4S@dpg-d7p3jlpj2pic73f1eog0-a.virginia-postgres.render.com/vetmed_db_5xf0?sslmode=require"
 
 try:
     old = psycopg2.connect(OLD_DB)
