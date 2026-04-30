@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
-import cloudinary
-import cloudinary.uploader
 import os
 import requests
 import pdfplumber
@@ -10,7 +8,8 @@ from PIL import Image
 import io
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import google.generativeai as genai  # AJOUTÉ
+import google.generativeai as genai
+import uuid
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -21,18 +20,16 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-cloudinary.config(
-    cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"),
-    api_key    = os.environ.get("CLOUDINARY_API_KEY"),
-    api_secret = os.environ.get("CLOUDINARY_API_SECRET")
-)
+# Configuration Supabase
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
+SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET")
 
 ADMIN_PASSWORD = "vetmed2024"
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")  # AJOUTÉ
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
-# AJOUTÉ : Configurer Gemini
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -189,20 +186,32 @@ def upload_fichier():
     file      = request.files.get('fichier')
     if not file:
         return jsonify({'error': 'Aucun fichier'}), 400
+
+    # Lire le contenu du fichier pour extraction
     file_bytes = file.read()
     texte = extraire_texte(file_bytes)
     file.seek(0)
-    result = cloudinary.uploader.upload(
-        file,
-        resource_type   = "auto",
-        folder          = f"vetmed/{annee}/{semestre}/{ressource}/{module}",
-        use_filename    = True,
-        unique_filename = True,
-        access_mode     = "public"
-    )
+
+    # Générer un nom unique
+    ext = file.filename.rsplit('.', 1)[-1] if '.' in file.filename else 'pdf'
+    object_path = f"{annee}/{semestre}/{ressource}/{module}/{uuid.uuid4()}.{ext}"
+
+    # Upload vers Supabase Storage
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{object_path}"
+    headers = {
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/pdf"
+    }
+    response = requests.post(upload_url, headers=headers, data=file_bytes)
+    if response.status_code != 200:
+        return jsonify({'error': 'Échec de l\'upload vers Supabase'}), 500
+
+    # URL publique
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{object_path}"
+
     f = Fichier(
         annee=annee, semestre=semestre, ressource=ressource, module=module,
-        nom=nom, url=result['secure_url'], texte=texte,
+        nom=nom, url=public_url, texte=texte,
         date_creation=datetime.now().strftime("%d/%m/%Y %H:%M")
     )
     db.session.add(f)
@@ -348,7 +357,7 @@ def ajouter_favori(fichier_id):
     if not session.get('user_id'):
         return jsonify({'error': 'Non connecté'}), 401
     if Favori.query.filter_by(utilisateur_id=session['user_id'], fichier_id=fichier_id).first():
-        return jsonify({'success': True})  # déjà en favori
+        return jsonify({'success': True})
     fav = Favori(
         utilisateur_id=session['user_id'],
         fichier_id=fichier_id,
@@ -531,7 +540,6 @@ def chat():
             annee_specifique = annee_id
             break
 
-    # Si une année est spécifiée, ne garder que les fichiers de cette année
     if annee_specifique:
         fichiers = Fichier.query.filter_by(annee=annee_specifique).all()
     else:
@@ -572,11 +580,6 @@ def chat():
             else:
                 msg = "Aucun fichier récent."
             return jsonify({'success': True, 'answer': msg})
-
-    # Si on est dans une commande spéciale, on ne continue pas
-    if question.startswith('/'):
-        # déjà traité
-        pass
 
     # Réponse IA normal
     tous_fichiers = []
