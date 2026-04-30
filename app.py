@@ -196,10 +196,10 @@ def upload_fichier():
     ext = file.filename.rsplit('.', 1)[-1] if '.' in file.filename else 'pdf'
     object_path = f"{annee}/{semestre}/{ressource}/{module}/{uuid.uuid4()}.{ext}"
 
-    # Upload vers Supabase Storage
+    # Upload vers Supabase Storage (en-tête apikey corrigé)
     upload_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{object_path}"
     headers = {
-        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "apikey": SUPABASE_SERVICE_KEY,
         "Content-Type": "application/pdf"
     }
     response = requests.post(upload_url, headers=headers, data=file_bytes)
