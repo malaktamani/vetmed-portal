@@ -1,8 +1,6 @@
 flask
-flask-login
 flask-sqlalchemy
 gunicorn
-cloudinary
 pdfplumber
 pytesseract
 pillow
