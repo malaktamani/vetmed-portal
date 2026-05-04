@@ -34,7 +34,7 @@
     .admin-badge { background: rgba(247,192,106,0.15); color: var(--accent3); border: 1px solid rgba(247,192,106,0.3); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
     .logout-btn { background: rgba(247,117,106,0.1); color: var(--danger); border: 1px solid rgba(247,117,106,0.2); padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
     .logout-btn:hover { background: rgba(247,117,106,0.25); }
-    .stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); background: var(--bg2); }
+    .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); background: var(--bg2); }
     .stat-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.2rem; }
     .stat-val { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700; }
     .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -74,7 +74,6 @@
     .success-msg { color: var(--success); font-size: 13px; margin-top: 8px; text-align: center; }
     .filter-bar { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
     .filter-bar select.input { margin: 0; flex: 1; min-width: 120px; }
-    .filter-bar .btn-primary { width: auto; padding: 10px 16px; }
     .search-bar { width: 100%; margin-bottom: 1rem; }
     .search-bar .input { margin: 0; }
     .items-list { display: flex; flex-direction: column; gap: 8px; }
@@ -100,6 +99,8 @@
     .pill-standard { background: rgba(255,255,255,0.05); color: var(--muted); }
     .empty-msg { color: var(--muted); font-size: 14px; text-align: center; padding: 3rem; }
     .ia-card { background: linear-gradient(135deg, rgba(124,106,247,0.1), rgba(78,205,196,0.1)); border: 1px solid rgba(124,106,247,0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .migration-card { background: linear-gradient(135deg, rgba(247,192,106,0.1), rgba(247,117,106,0.1)); border: 1px solid rgba(247,192,106,0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .migration-status { font-size: 13px; color: var(--accent3); margin-bottom: 1rem; padding: 8px 12px; background: rgba(247,192,106,0.08); border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -131,10 +132,6 @@
     <div class="stat-card">
       <div class="stat-val" id="statFichiers">—</div>
       <div class="stat-label">📄 Fichiers en ligne</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statFichiersSupabase">—</div>
-      <div class="stat-label">🔄 Fichiers Supabase</div>
     </div>
     <div class="stat-card">
       <div class="stat-val" id="statUsers">—</div>
@@ -208,25 +205,25 @@
         <div class="success-msg" id="uploadMsg"></div>
       </div>
 
-      <!-- SECTION MIGRATION -->
-      <div class="section-title">🚀 Migration Supabase → Tebi</div>
-      <div class="ia-card">
-        <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">
-          Migre tous les anciens fichiers stockés sur Supabase vers Tebi.io. Clique plusieurs fois jusqu'à ce que le compteur indique 0.
-        </p>
-        <div id="migrationStatus" style="font-size:13px;color:var(--accent3);margin-bottom:1rem;background:var(--bg3);padding:10px;border-radius:8px">📊 Chargement du statut...</div>
-        <button class="upload-btn" onclick="migrerTebi()" id="migrerBtn">⚡ Migrer vers Tebi (par lots de 10)</button>
-        <div class="success-msg" id="migrerMsg"></div>
-      </div>
-
       <!-- SECTION IA -->
       <div class="section-title">🧠 Intelligence IA — VetBot</div>
       <div class="ia-card">
         <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">
-          Pour que VetBot puisse répondre sur le <strong style="color:var(--text)">contenu réel</strong> de tes cours, il faut extraire le texte de tous les PDF. Clique sur le bouton ci-dessous — ça peut prendre quelques minutes selon le nombre de fichiers.
+          Pour que VetBot puisse répondre sur le <strong style="color:var(--text)">contenu réel</strong> de tes cours, il faut extraire le texte de tous les PDF. Clique sur le bouton ci-dessous — ça peut prendre quelques minutes.
         </p>
         <button class="upload-btn" onclick="extraireTextes()" id="extraireBtn">🔍 Extraire le texte de tous les fichiers</button>
         <div class="success-msg" id="extraireMsg"></div>
+      </div>
+
+      <!-- SECTION MIGRATION SUPABASE → TEBI -->
+      <div class="section-title">🚀 Migration Supabase → Tebi</div>
+      <div class="migration-card">
+        <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">
+          Migre tous les anciens fichiers Supabase vers <strong style="color:var(--text)">Tebi.io</strong>. Le script tourne sur le serveur — clique plusieurs fois jusqu'à ce que la migration soit terminée (par lots de 10).
+        </p>
+        <div class="migration-status" id="migrationStatus">📊 Chargement du statut...</div>
+        <button class="upload-btn" onclick="migrerTebi()" id="migrerBtn">⚡ Migrer vers Tebi (lot de 10)</button>
+        <div class="success-msg" id="migrerMsg"></div>
       </div>
     </div>
 
@@ -294,84 +291,7 @@ const MODULES = {
 };
 
 let fileQueue = [];
-let allUsers = [];
-
-async function updateMigrationStatus() {
-  try {
-    const res = await fetch('/api/admin/migration_status');
-    const data = await res.json();
-    const reste = data.restants;
-    const total = data.total;
-    const pourcent = total > 0 ? Math.round((total - reste) / total * 100) : 100;
-    const statusDiv = document.getElementById('migrationStatus');
-    const statCard = document.getElementById('statFichiersSupabase');
-    if (statusDiv) {
-      if (reste === 0) {
-        statusDiv.innerHTML = `✅ Migration terminée ! Plus aucun fichier sur Supabase.`;
-      } else {
-        statusDiv.innerHTML = `📊 ${reste} fichiers Supabase restants sur ${total} total (${pourcent}% migrés). Clique sur le bouton pour continuer la migration par lots de 10.`;
-      }
-    }
-    if (statCard) {
-      statCard.textContent = reste;
-    }
-    return reste;
-  } catch(e) {
-    if(document.getElementById('migrationStatus')) {
-      document.getElementById('migrationStatus').innerHTML = '⚠️ Impossible de charger le statut. Assurez-vous d\'être connecté.';
-    }
-    return null;
-  }
-}
-
-async function migrerTebi() {
-  const btn = document.getElementById('migrerBtn');
-  const msg = document.getElementById('migrerMsg');
-  const status = document.getElementById('migrationStatus');
-  if (!btn) return;
-  
-  btn.disabled = true;
-  let termine = false;
-  let totalTraites = 0;
-  let totalEchecs = 0;
-  
-  await updateMigrationStatus();
-  
-  while (!termine) {
-    btn.textContent = `⏳ Migration en cours... (${totalTraites} migrés)`;
-    
-    try {
-      const res = await fetch('/api/admin/migrer_tebi', { method: 'POST' });
-      const data = await res.json();
-      
-      totalTraites += data.traites || 0;
-      totalEchecs += data.echecs || 0;
-      termine = data.termine;
-      
-      if (status) {
-        status.innerHTML = `📊 ${data.restants} fichiers Supabase restants — ${totalTraites} migrés, ${totalEchecs} échecs`;
-      }
-      
-      if (termine) {
-        msg.textContent = `✅ Migration terminée ! ${totalTraites} fichiers migrés vers Tebi. ${totalEchecs > 0 ? `${totalEchecs} échecs` : ''}`;
-        if (status) status.innerHTML = `✅ Migration terminée ! Plus aucun fichier sur Supabase.`;
-      } else {
-        msg.textContent = `⏳ ${totalTraites} migrés... ${data.restants} restants. ${totalEchecs > 0 ? `${totalEchecs} échecs` : ''}`;
-      }
-      
-      await updateMigrationStatus();
-      
-    } catch(e) {
-      msg.textContent = `❌ Erreur: ${e.message || 'Problème réseau. Réessaie.'}`;
-      break;
-    }
-  }
-  
-  btn.disabled = false;
-  btn.textContent = '⚡ Migrer vers Tebi (par lots de 10)';
-  loadStats();
-  loadFichiers();
-}
+let allUsers  = [];
 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -383,29 +303,36 @@ function switchTab(tab) {
 }
 
 async function loadStats() {
+  const [fichiers, users] = await Promise.all([
+    fetch('/api/admin/fichiers?').then(r => r.json()),
+    fetch('/api/admin/utilisateurs').then(r => r.json())
+  ]);
+  document.getElementById('statFichiers').textContent = fichiers.length;
+  document.getElementById('statUsers').textContent    = users.length;
+  document.getElementById('statPremium').textContent  = users.filter(u => u.premium).length;
+  document.getElementById('statBloques').textContent  = users.filter(u => !u.actif).length;
+  document.getElementById('badgeFichiers').textContent = fichiers.length;
+  document.getElementById('badgeUsers').textContent    = users.length;
+}
+
+async function loadMigrationStatus() {
   try {
-    const [fichiers, users, migration] = await Promise.all([
-      fetch('/api/admin/fichiers?').then(r => r.json()),
-      fetch('/api/admin/utilisateurs').then(r => r.json()),
-      fetch('/api/admin/migration_status').then(r => r.json()).catch(() => ({ restants: 0 }))
-    ]);
-    document.getElementById('statFichiers').textContent = fichiers.length;
-    document.getElementById('statFichiersSupabase').textContent = migration.restants || 0;
-    document.getElementById('statUsers').textContent = users.length;
-    document.getElementById('statPremium').textContent = users.filter(u => u.premium).length;
-    document.getElementById('statBloques').textContent = users.filter(u => !u.actif).length;
-    document.getElementById('badgeFichiers').textContent = fichiers.length;
-    document.getElementById('badgeUsers').textContent = users.length;
-    updateMigrationStatus();
-  } catch(e) {
-    console.error('Stats error:', e);
-  }
+    const data = await fetch('/api/admin/migration_status').then(r => r.json());
+    const el   = document.getElementById('migrationStatus');
+    if(data.termine) {
+      el.textContent = '✅ Migration terminée — tous les fichiers sont sur Tebi !';
+      el.style.color = 'var(--success)';
+      document.getElementById('migrerBtn').style.display = 'none';
+    } else {
+      el.textContent = `📊 ${data.restants} fichiers Supabase restants sur ${data.total} total`;
+    }
+  } catch(e) {}
 }
 
 function updateModules() {
-  const key = document.getElementById('annee').value + '-' + document.getElementById('semestre').value;
-  const res = document.getElementById('ressource').value;
-  const sel = document.getElementById('module');
+  const key  = document.getElementById('annee').value + '-' + document.getElementById('semestre').value;
+  const res  = document.getElementById('ressource').value;
+  const sel  = document.getElementById('module');
   const mods = MODULES[key] ? MODULES[key][res] || [] : [];
   sel.innerHTML = mods.map(m => `<option value="${m}">${m}</option>`).join('') || '<option>À compléter</option>';
 }
@@ -443,11 +370,11 @@ function removeFile(i) {
 }
 
 async function uploadAll() {
-  const pending = fileQueue.filter(f => f.status === 'pending');
+  const pending     = fileQueue.filter(f => f.status === 'pending');
   if(!pending.length) return;
-  const btn = document.getElementById('uploadBtn');
+  const btn         = document.getElementById('uploadBtn');
   const progressWrap = document.getElementById('progressWrap');
-  const progressBar = document.getElementById('progressBar');
+  const progressBar  = document.getElementById('progressBar');
   btn.disabled = true;
   progressWrap.style.display = 'block';
   let done = 0;
@@ -474,7 +401,7 @@ async function uploadAll() {
     fileQueue = fileQueue.filter(f => f.status !== 'done');
     renderQueue();
     progressWrap.style.display = 'none';
-    progressBar.style.width = '0%';
+    progressBar.style.width    = '0%';
     document.getElementById('uploadBtn').style.display = fileQueue.length ? 'block' : 'none';
     loadStats();
   }, 3000);
@@ -483,33 +410,61 @@ async function uploadAll() {
 async function extraireTextes() {
   const btn = document.getElementById('extraireBtn');
   const msg = document.getElementById('extraireMsg');
-  btn.disabled = true;
-  
-  let termine = false;
+  btn.disabled  = true;
+  let termine   = false;
   let totalTraites = 0;
-  
   while (!termine) {
-    btn.textContent = `⏳ Extraction... (${totalTraites} fichiers traités)`;
-    
+    btn.textContent = `⏳ Extraction... (${totalTraites} traités)`;
     try {
-      const res = await fetch('/api/admin/extraire_textes', {method:'POST'});
+      const res  = await fetch('/api/admin/extraire_textes', {method:'POST'});
       const data = await res.json();
       totalTraites += data.traites;
       termine = data.termine;
-      
-      if (termine) {
-        msg.textContent = `✅ Terminé ! ${totalTraites} fichiers traités au total. Le chatbot peut maintenant lire le contenu des cours.`;
-      } else {
-        msg.textContent = `⏳ ${totalTraites} fichiers traités... ${data.total} restants.`;
-      }
+      msg.textContent = termine
+        ? `✅ Terminé ! ${totalTraites} fichiers traités.`
+        : `⏳ ${totalTraites} traités... ${data.total} restants.`;
     } catch(e) {
-      msg.textContent = '❌ Erreur lors de l\'extraction. Réessaie.';
+      msg.textContent = '❌ Erreur. Réessaie.';
       break;
     }
   }
-  
-  btn.disabled = false;
+  btn.disabled    = false;
   btn.textContent = '🔍 Extraire le texte de tous les fichiers';
+}
+
+async function migrerTebi() {
+  const btn    = document.getElementById('migrerBtn');
+  const msg    = document.getElementById('migrerMsg');
+  const status = document.getElementById('migrationStatus');
+  btn.disabled = true;
+  let termine  = false;
+  let totalTraites = 0;
+
+  while (!termine) {
+    btn.textContent = `⏳ Migration en cours... (${totalTraites} migrés)`;
+    try {
+      const res  = await fetch('/api/admin/migrer_tebi', {method:'POST'});
+      const data = await res.json();
+      if(data.error) { msg.textContent = '❌ Erreur : ' + data.error; break; }
+      totalTraites += data.traites;
+      termine = data.termine;
+      status.textContent = `📊 ${data.restants} fichiers Supabase restants`;
+      msg.textContent = termine
+        ? `✅ Migration terminée ! ${totalTraites} fichiers migrés vers Tebi.`
+        : `⏳ ${totalTraites} migrés... ${data.restants} restants.`;
+    } catch(e) {
+      msg.textContent = '❌ Erreur réseau. Réessaie.';
+      break;
+    }
+  }
+
+  if(termine) {
+    status.textContent = '✅ Migration terminée — tous les fichiers sont sur Tebi !';
+    status.style.color = 'var(--success)';
+    btn.style.display  = 'none';
+  }
+  btn.disabled    = false;
+  btn.textContent = '⚡ Migrer vers Tebi (lot de 10)';
 }
 
 const anneeLabel = {'1a':'1ère année','2a':'2ème année','3a':'3ème année','4a':'4ème année','5a':'5ème année','6a':'6ème année'};
@@ -525,7 +480,7 @@ async function loadFichiers() {
   if(semestre)  url += `semestre=${semestre}&`;
   if(ressource) url += `ressource=${ressource}&`;
   const fichiers = await fetch(url).then(r => r.json());
-  const list = document.getElementById('fichiersList');
+  const list     = document.getElementById('fichiersList');
   document.getElementById('badgeFichiers').textContent = fichiers.length;
   if(!fichiers.length) { list.innerHTML = '<div class="empty-msg">Aucun fichier</div>'; return; }
   list.innerHTML = fichiers.map(f => `
@@ -533,7 +488,6 @@ async function loadFichiers() {
       <div class="fichier-info">
         <div class="fichier-nom">📄 ${f.nom}</div>
         <div class="fichier-meta">${anneeLabel[f.annee]||f.annee} · ${semLabel[f.semestre]||f.semestre} · ${resLabel[f.ressource]||f.ressource} · ${f.module}</div>
-        ${f.url && f.url.includes('supabase') ? '<div style="font-size:10px;color:var(--accent3);margin-top:4px">⚠️ Encore sur Supabase</div>' : ''}
       </div>
       <div class="actions">
         <a href="${f.url}" target="_blank" class="btn-sm btn-teal">👁️ Voir</a>
@@ -557,12 +511,12 @@ async function loadUtilisateurs() {
 function filterUsers() {
   const search  = document.getElementById('searchUser').value.toLowerCase();
   const statut  = document.getElementById('filterStatut').value;
-  let filtered  = allUsers.filter(u => {
+  const filtered = allUsers.filter(u => {
     const matchSearch = (u.nom+u.prenom+u.email).toLowerCase().includes(search);
     const matchStatut = !statut ||
-      (statut === 'actif'    && u.actif && !u.premium) ||
-      (statut === 'bloque'   && !u.actif) ||
-      (statut === 'premium'  && u.premium);
+      (statut === 'actif'   && u.actif && !u.premium) ||
+      (statut === 'bloque'  && !u.actif) ||
+      (statut === 'premium' && u.premium);
     return matchSearch && matchStatut;
   });
   renderUsers(filtered);
@@ -583,7 +537,7 @@ function renderUsers(users) {
       </div>
       <div class="actions">
         <button class="btn-sm btn-purple" onclick="toggleActif(${u.id})">${u.actif ? '🚫 Bloquer' : '✅ Débloquer'}</button>
-        <button class="btn-sm btn-gold" onclick="togglePremium(${u.id})">${u.premium ? 'Retirer Premium' : '⭐ Premium'}</button>
+        <button class="btn-sm btn-gold"   onclick="togglePremium(${u.id})">${u.premium ? 'Retirer Premium' : '⭐ Premium'}</button>
         <button class="btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑️</button>
       </div>
     </div>`).join('');
@@ -606,19 +560,15 @@ async function deleteUser(id) {
 }
 
 async function login() {
-  const pwd = document.getElementById('passwordInput').value;
-  const res = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pwd}) });
+  const pwd  = document.getElementById('passwordInput').value;
+  const res  = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pwd}) });
   const data = await res.json();
   if(data.success) {
-    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('loginWrap').style.display  = 'none';
     document.getElementById('adminPanel').style.display = 'block';
-    updateModules(); 
+    updateModules();
     loadStats();
-    setInterval(() => {
-      if(document.getElementById('adminPanel').style.display === 'block') {
-        updateMigrationStatus();
-      }
-    }, 10000);
+    loadMigrationStatus();
   } else {
     document.getElementById('loginError').textContent = 'Mot de passe incorrect !';
   }
@@ -626,9 +576,9 @@ async function login() {
 
 async function logout() {
   await fetch('/api/admin/logout', {method:'POST'});
-  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('loginWrap').style.display  = 'flex';
   document.getElementById('adminPanel').style.display = 'none';
-  document.getElementById('passwordInput').value = '';
+  document.getElementById('passwordInput').value      = '';
 }
 
 updateModules();
