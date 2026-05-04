@@ -34,7 +34,7 @@
     .admin-badge { background: rgba(247,192,106,0.15); color: var(--accent3); border: 1px solid rgba(247,192,106,0.3); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
     .logout-btn { background: rgba(247,117,106,0.1); color: var(--danger); border: 1px solid rgba(247,117,106,0.2); padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
     .logout-btn:hover { background: rgba(247,117,106,0.25); }
-    .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); background: var(--bg2); }
+    .stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); background: var(--bg2); }
     .stat-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.2rem; }
     .stat-val { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700; }
     .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -133,6 +133,10 @@
       <div class="stat-label">📄 Fichiers en ligne</div>
     </div>
     <div class="stat-card">
+      <div class="stat-val" id="statFichiersSupabase">—</div>
+      <div class="stat-label">🔄 Fichiers Supabase</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-val" id="statUsers">—</div>
       <div class="stat-label">👥 Utilisateurs</div>
     </div>
@@ -202,6 +206,17 @@
         </div>
         <button class="upload-btn" id="uploadBtn" onclick="uploadAll()" style="display:none">⬆️ Uploader tous les fichiers</button>
         <div class="success-msg" id="uploadMsg"></div>
+      </div>
+
+      <!-- SECTION MIGRATION -->
+      <div class="section-title">🚀 Migration Supabase → Tebi</div>
+      <div class="ia-card">
+        <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">
+          Migre tous les anciens fichiers stockés sur Supabase vers Tebi.io. Clique plusieurs fois jusqu'à ce que le compteur indique 0.
+        </p>
+        <div id="migrationStatus" style="font-size:13px;color:var(--accent3);margin-bottom:1rem;background:var(--bg3);padding:10px;border-radius:8px">📊 Chargement du statut...</div>
+        <button class="upload-btn" onclick="migrerTebi()" id="migrerBtn">⚡ Migrer vers Tebi (par lots de 10)</button>
+        <div class="success-msg" id="migrerMsg"></div>
       </div>
 
       <!-- SECTION IA -->
@@ -281,6 +296,83 @@ const MODULES = {
 let fileQueue = [];
 let allUsers = [];
 
+async function updateMigrationStatus() {
+  try {
+    const res = await fetch('/api/admin/migration_status');
+    const data = await res.json();
+    const reste = data.restants;
+    const total = data.total;
+    const pourcent = total > 0 ? Math.round((total - reste) / total * 100) : 100;
+    const statusDiv = document.getElementById('migrationStatus');
+    const statCard = document.getElementById('statFichiersSupabase');
+    if (statusDiv) {
+      if (reste === 0) {
+        statusDiv.innerHTML = `✅ Migration terminée ! Plus aucun fichier sur Supabase.`;
+      } else {
+        statusDiv.innerHTML = `📊 ${reste} fichiers Supabase restants sur ${total} total (${pourcent}% migrés). Clique sur le bouton pour continuer la migration par lots de 10.`;
+      }
+    }
+    if (statCard) {
+      statCard.textContent = reste;
+    }
+    return reste;
+  } catch(e) {
+    if(document.getElementById('migrationStatus')) {
+      document.getElementById('migrationStatus').innerHTML = '⚠️ Impossible de charger le statut. Assurez-vous d\'être connecté.';
+    }
+    return null;
+  }
+}
+
+async function migrerTebi() {
+  const btn = document.getElementById('migrerBtn');
+  const msg = document.getElementById('migrerMsg');
+  const status = document.getElementById('migrationStatus');
+  if (!btn) return;
+  
+  btn.disabled = true;
+  let termine = false;
+  let totalTraites = 0;
+  let totalEchecs = 0;
+  
+  await updateMigrationStatus();
+  
+  while (!termine) {
+    btn.textContent = `⏳ Migration en cours... (${totalTraites} migrés)`;
+    
+    try {
+      const res = await fetch('/api/admin/migrer_tebi', { method: 'POST' });
+      const data = await res.json();
+      
+      totalTraites += data.traites || 0;
+      totalEchecs += data.echecs || 0;
+      termine = data.termine;
+      
+      if (status) {
+        status.innerHTML = `📊 ${data.restants} fichiers Supabase restants — ${totalTraites} migrés, ${totalEchecs} échecs`;
+      }
+      
+      if (termine) {
+        msg.textContent = `✅ Migration terminée ! ${totalTraites} fichiers migrés vers Tebi. ${totalEchecs > 0 ? `${totalEchecs} échecs` : ''}`;
+        if (status) status.innerHTML = `✅ Migration terminée ! Plus aucun fichier sur Supabase.`;
+      } else {
+        msg.textContent = `⏳ ${totalTraites} migrés... ${data.restants} restants. ${totalEchecs > 0 ? `${totalEchecs} échecs` : ''}`;
+      }
+      
+      await updateMigrationStatus();
+      
+    } catch(e) {
+      msg.textContent = `❌ Erreur: ${e.message || 'Problème réseau. Réessaie.'}`;
+      break;
+    }
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '⚡ Migrer vers Tebi (par lots de 10)';
+  loadStats();
+  loadFichiers();
+}
+
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -291,16 +383,23 @@ function switchTab(tab) {
 }
 
 async function loadStats() {
-  const [fichiers, users] = await Promise.all([
-    fetch('/api/admin/fichiers?').then(r => r.json()),
-    fetch('/api/admin/utilisateurs').then(r => r.json())
-  ]);
-  document.getElementById('statFichiers').textContent = fichiers.length;
-  document.getElementById('statUsers').textContent = users.length;
-  document.getElementById('statPremium').textContent = users.filter(u => u.premium).length;
-  document.getElementById('statBloques').textContent = users.filter(u => !u.actif).length;
-  document.getElementById('badgeFichiers').textContent = fichiers.length;
-  document.getElementById('badgeUsers').textContent = users.length;
+  try {
+    const [fichiers, users, migration] = await Promise.all([
+      fetch('/api/admin/fichiers?').then(r => r.json()),
+      fetch('/api/admin/utilisateurs').then(r => r.json()),
+      fetch('/api/admin/migration_status').then(r => r.json()).catch(() => ({ restants: 0 }))
+    ]);
+    document.getElementById('statFichiers').textContent = fichiers.length;
+    document.getElementById('statFichiersSupabase').textContent = migration.restants || 0;
+    document.getElementById('statUsers').textContent = users.length;
+    document.getElementById('statPremium').textContent = users.filter(u => u.premium).length;
+    document.getElementById('statBloques').textContent = users.filter(u => !u.actif).length;
+    document.getElementById('badgeFichiers').textContent = fichiers.length;
+    document.getElementById('badgeUsers').textContent = users.length;
+    updateMigrationStatus();
+  } catch(e) {
+    console.error('Stats error:', e);
+  }
 }
 
 function updateModules() {
@@ -434,6 +533,7 @@ async function loadFichiers() {
       <div class="fichier-info">
         <div class="fichier-nom">📄 ${f.nom}</div>
         <div class="fichier-meta">${anneeLabel[f.annee]||f.annee} · ${semLabel[f.semestre]||f.semestre} · ${resLabel[f.ressource]||f.ressource} · ${f.module}</div>
+        ${f.url && f.url.includes('supabase') ? '<div style="font-size:10px;color:var(--accent3);margin-top:4px">⚠️ Encore sur Supabase</div>' : ''}
       </div>
       <div class="actions">
         <a href="${f.url}" target="_blank" class="btn-sm btn-teal">👁️ Voir</a>
@@ -512,7 +612,13 @@ async function login() {
   if(data.success) {
     document.getElementById('loginWrap').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
-    updateModules(); loadStats();
+    updateModules(); 
+    loadStats();
+    setInterval(() => {
+      if(document.getElementById('adminPanel').style.display === 'block') {
+        updateMigrationStatus();
+      }
+    }, 10000);
   } else {
     document.getElementById('loginError').textContent = 'Mot de passe incorrect !';
   }
