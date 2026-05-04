@@ -10,6 +10,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import google.generativeai as genai
 import uuid
+import boto3
+from botocore.client import Config
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -20,14 +22,24 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Configuration Supabase
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET")
+# Configuration Tebi.io
+TEBI_ACCESS_KEY = os.environ.get("TEBI_ACCESS_KEY")
+TEBI_SECRET_KEY = os.environ.get("TEBI_SECRET_KEY")
+TEBI_BUCKET     = os.environ.get("TEBI_BUCKET", "vetmed-files")
+TEBI_ENDPOINT   = os.environ.get("TEBI_ENDPOINT", "https://s3.tebi.io")
 
-ADMIN_PASSWORD = "vetmed2024"
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+def get_tebi_client():
+    return boto3.client(
+        's3',
+        endpoint_url=TEBI_ENDPOINT,
+        aws_access_key_id=TEBI_ACCESS_KEY,
+        aws_secret_access_key=TEBI_SECRET_KEY,
+        config=Config(signature_version='s3v4')
+    )
+
+ADMIN_PASSWORD    = "vetmed2024"
+GROQ_API_KEY      = os.environ.get("GROQ_API_KEY")
+GOOGLE_API_KEY    = os.environ.get("GOOGLE_API_KEY")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 if GOOGLE_API_KEY:
@@ -95,6 +107,23 @@ def extraire_texte_depuis_url(url):
     except Exception as e:
         print(f"Erreur téléchargement: {e}")
         return ''
+
+def upload_to_tebi(file_bytes, object_path):
+    """Upload un fichier vers Tebi.io et retourne l'URL publique."""
+    try:
+        client = get_tebi_client()
+        client.put_object(
+            Bucket=TEBI_BUCKET,
+            Key=object_path,
+            Body=file_bytes,
+            ContentType='application/pdf',
+            ACL='public-read'
+        )
+        public_url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
+        return public_url
+    except Exception as e:
+        print(f"Erreur upload Tebi: {e}")
+        return None
 
 # ── SERVE HTML ─────────────────
 @app.route('/')
@@ -187,27 +216,16 @@ def upload_fichier():
     if not file:
         return jsonify({'error': 'Aucun fichier'}), 400
 
-    # Lire le contenu du fichier pour extraction
     file_bytes = file.read()
     texte = extraire_texte(file_bytes)
-    file.seek(0)
 
-    # Générer un nom unique
-    ext = file.filename.rsplit('.', 1)[-1] if '.' in file.filename else 'pdf'
-    object_path = f"{annee}/{semestre}/{ressource}/{module}/{uuid.uuid4()}.{ext}"
+    # Générer un chemin unique
+    object_path = f"{annee}/{semestre}/{ressource}/{module}/{uuid.uuid4()}.pdf"
 
-    # Upload vers Supabase Storage (en-tête apikey corrigé)
-    upload_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{object_path}"
-    headers = {
-        "apikey": SUPABASE_SERVICE_KEY,
-        "Content-Type": "application/pdf"
-    }
-    response = requests.post(upload_url, headers=headers, data=file_bytes)
-    if response.status_code != 200:
-        return jsonify({'error': 'Échec de l\'upload vers Supabase'}), 500
-
-    # URL publique
-    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{object_path}"
+    # Upload vers Tebi
+    public_url = upload_to_tebi(file_bytes, object_path)
+    if not public_url:
+        return jsonify({'error': 'Échec de l\'upload vers Tebi'}), 500
 
     f = Fichier(
         annee=annee, semestre=semestre, ressource=ressource, module=module,
@@ -448,8 +466,7 @@ def chat_with_groq(question, system_prompt):
         result = response.json()
         if 'choices' in result:
             return result['choices'][0]['message']['content']
-        else:
-            return None
+        return None
     except Exception as e:
         print(f"Erreur Groq: {e}")
         return None
@@ -463,7 +480,7 @@ def chat_with_openrouter(question, system_prompt):
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://vetmed-portal-production.up.railway.app",
+                "HTTP-Referer": "https://vetmed-portal.onrender.com",
                 "X-Title": "VetStudy"
             },
             json={
@@ -480,14 +497,12 @@ def chat_with_openrouter(question, system_prompt):
         result = response.json()
         if 'choices' in result:
             return result['choices'][0]['message']['content']
-        else:
-            return None
+        return None
     except Exception as e:
         print(f"Erreur OpenRouter: {e}")
         return None
 
 def chat_with_openrouter_backup(question, system_prompt):
-    """Modèle de secours gratuit sur OpenRouter (quota séparé)."""
     if not OPENROUTER_API_KEY:
         return None
     try:
@@ -496,7 +511,7 @@ def chat_with_openrouter_backup(question, system_prompt):
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://vetmed-portal-production.up.railway.app",
+                "HTTP-Referer": "https://vetmed-portal.onrender.com",
                 "X-Title": "VetStudy"
             },
             json={
@@ -513,8 +528,7 @@ def chat_with_openrouter_backup(question, system_prompt):
         result = response.json()
         if 'choices' in result:
             return result['choices'][0]['message']['content']
-        else:
-            return None
+        return None
     except Exception as e:
         print(f"Erreur OpenRouter backup: {e}")
         return None
@@ -528,7 +542,6 @@ def chat():
     if not question:
         return jsonify({'error': 'Message vide'}), 400
 
-    # Détection d'une année spécifique dans la question
     annee_specifique = None
     for annee_id, mots_annee in [('1a', ['1ère', '1ere', 'première', 'premiere', '1er']),
                                  ('2a', ['2ème', '2eme', 'deuxième', 'deuxieme', '2nd']),
@@ -545,7 +558,6 @@ def chat():
     else:
         fichiers = Fichier.query.all()
 
-    # Commandes spéciales
     if question.startswith('/'):
         if question == '/help':
             return jsonify({'success': True, 'answer': """Commandes disponibles :
@@ -581,7 +593,6 @@ def chat():
                 msg = "Aucun fichier récent."
             return jsonify({'success': True, 'answer': msg})
 
-    # Réponse IA normal
     tous_fichiers = []
     for f in fichiers:
         info = f"[{f.annee} | {f.semestre} | {f.ressource} | {f.module}] — {f.nom}"
@@ -605,7 +616,6 @@ def chat():
 
     ordonnes = pertinents + autres
 
-    # --- DIVERSIFICATION : au moins 12 fichiers par année pour équilibrer ---
     selectionnes = []
     selectionnes.extend(ordonnes[:40])
 
@@ -634,14 +644,14 @@ def chat():
 
     extraits_texte = "**Contenu des cours pertinents :**\n" + "\n\n".join(textes_pertinents) if textes_pertinents else "Aucun extrait spécifique trouvé."
 
-    system_prompt = f"""Tu es VetBot, assistant IA spécialisé en médecine vétérinaire pour le portail VetStudy.  
-Tu es un assistant spécialisé en médecine vétérinaire. Ta mission est de répondre aux étudiants en te basant uniquement sur le contenu des cours listés ici.  
-Si la réponse se trouve dans les extraits, cite-les et indique clairement le titre du fichier source (ex: "D'après le fichier 'polyRepro_GestationV2' du module Physiologie de la reproduction de 2ème année...").  
-Si les extraits ne contiennent pas la réponse, ne dis pas "je ne sais pas". Analyse la liste des 100 fichiers qui t'est fournie et donne les noms exacts des fichiers qui pourraient contenir l'information recherchée, avec leur module et leur année.  
+    system_prompt = f"""Tu es VetBot, assistant IA spécialisé en médecine vétérinaire pour le portail VetStudy.
+Tu es un assistant spécialisé en médecine vétérinaire. Ta mission est de répondre aux étudiants en te basant uniquement sur le contenu des cours listés ici.
+Si la réponse se trouve dans les extraits, cite-les et indique clairement le titre du fichier source.
+Si les extraits ne contiennent pas la réponse, analyse la liste des 100 fichiers et donne les noms exacts des fichiers qui pourraient contenir l'information recherchée.
 Si l'information n'y figure pas, indique-le clairement et propose de chercher dans un autre module.
 
 Règles de réponse TRÈS IMPORTANTES :
-- N'utilise JAMAIS de markdown (pas de #, ##, ###, *, -, etc.). 
+- N'utilise JAMAIS de markdown (pas de #, ##, ###, *, -, etc.).
 - Formate ta réponse avec des phrases courtes et des sauts de ligne pour aérer.
 - Pour les titres, mets-les EN MAJUSCULES suivis d'un saut de ligne.
 - Pour les listes, utilise de simples tirets (-) en début de ligne.
@@ -655,12 +665,9 @@ Règles de réponse TRÈS IMPORTANTES :
 Liste des fichiers pertinents (pour référence) :
 {chr(10).join(contexte_fichiers[:100])}
 """
-    # --- Plan A : Groq ---
     answer = chat_with_groq(question, system_prompt)
-    # --- Plan B : OpenRouter Llama ---
     if answer is None:
         answer = chat_with_openrouter(question, system_prompt)
-    # --- Plan C : OpenRouter Gemma (secours) ---
     if answer is None:
         answer = chat_with_openrouter_backup(question, system_prompt)
     if answer is None:
