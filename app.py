@@ -360,6 +360,51 @@ def maj_texte(id):
     db.session.commit()
     return jsonify({'success': True})
 
+# ── MIGRATION SUPABASE → TEBI ─────────────────
+@app.route('/api/admin/migrer_tebi', methods=['POST'])
+def migrer_tebi():
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    try:
+        client = get_tebi_client()
+        fichiers = Fichier.query.filter(Fichier.url.like('%supabase%')).limit(10).all()
+        if not fichiers:
+            return jsonify({'success': True, 'traites': 0, 'restants': 0, 'termine': True})
+        traites = 0
+        echecs = 0
+        for f in fichiers:
+            try:
+                r = requests.get(f.url, timeout=30)
+                if r.status_code != 200:
+                    echecs += 1
+                    continue
+                object_path = f"{f.annee}/{f.semestre}/{f.ressource}/{f.module}/{f.id}_{uuid.uuid4()}.pdf"
+                client.put_object(
+                    Bucket=TEBI_BUCKET, Key=object_path,
+                    Body=r.content, ContentType='application/pdf', ACL='public-read'
+                )
+                f.url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
+                db.session.commit()
+                traites += 1
+            except Exception as e:
+                print(f"Erreur migration fichier {f.id}: {e}")
+                echecs += 1
+        restants = Fichier.query.filter(Fichier.url.like('%supabase%')).count()
+        return jsonify({
+            'success': True, 'traites': traites, 'echecs': echecs,
+            'restants': restants, 'termine': restants == 0
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/migration_status')
+def migration_status():
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    restants = Fichier.query.filter(Fichier.url.like('%supabase%')).count()
+    total = Fichier.query.count()
+    return jsonify({'restants': restants, 'total': total, 'termine': restants == 0})
+
 # ── FAVORIS ─────────────────
 @app.route('/api/favoris', methods=['GET'])
 def get_favoris():
