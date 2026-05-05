@@ -99,8 +99,6 @@
     .pill-standard { background: rgba(255,255,255,0.05); color: var(--muted); }
     .empty-msg { color: var(--muted); font-size: 14px; text-align: center; padding: 3rem; }
     .ia-card { background: linear-gradient(135deg, rgba(124,106,247,0.1), rgba(78,205,196,0.1)); border: 1px solid rgba(124,106,247,0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
-    .migration-card { background: linear-gradient(135deg, rgba(247,192,106,0.1), rgba(247,117,106,0.1)); border: 1px solid rgba(247,192,106,0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
-    .migration-status { font-size: 13px; color: var(--accent3); margin-bottom: 1rem; padding: 8px 12px; background: rgba(247,192,106,0.08); border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -214,17 +212,6 @@
         <button class="upload-btn" onclick="extraireTextes()" id="extraireBtn">🔍 Extraire le texte de tous les fichiers</button>
         <div class="success-msg" id="extraireMsg"></div>
       </div>
-
-      <!-- SECTION MIGRATION SUPABASE → TEBI -->
-      <div class="section-title">🚀 Migration Supabase → Tebi</div>
-      <div class="migration-card">
-        <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">
-          Migre tous les anciens fichiers Supabase vers <strong style="color:var(--text)">Tebi.io</strong>. Le script tourne sur le serveur — clique plusieurs fois jusqu'à ce que la migration soit terminée (par lots de 10).
-        </p>
-        <div class="migration-status" id="migrationStatus">📊 Chargement du statut...</div>
-        <button class="upload-btn" onclick="migrerTebi()" id="migrerBtn">⚡ Migrer vers Tebi (lot de 10)</button>
-        <div class="success-msg" id="migrerMsg"></div>
-      </div>
     </div>
 
     <!-- TAB FICHIERS -->
@@ -313,20 +300,6 @@ async function loadStats() {
   document.getElementById('statBloques').textContent  = users.filter(u => !u.actif).length;
   document.getElementById('badgeFichiers').textContent = fichiers.length;
   document.getElementById('badgeUsers').textContent    = users.length;
-}
-
-async function loadMigrationStatus() {
-  try {
-    const data = await fetch('/api/admin/migration_status').then(r => r.json());
-    const el   = document.getElementById('migrationStatus');
-    if(data.termine) {
-      el.textContent = '✅ Migration terminée — tous les fichiers sont sur Tebi !';
-      el.style.color = 'var(--success)';
-      document.getElementById('migrerBtn').style.display = 'none';
-    } else {
-      el.textContent = `📊 ${data.restants} fichiers Supabase restants sur ${data.total} total`;
-    }
-  } catch(e) {}
 }
 
 function updateModules() {
@@ -432,41 +405,6 @@ async function extraireTextes() {
   btn.textContent = '🔍 Extraire le texte de tous les fichiers';
 }
 
-async function migrerTebi() {
-  const btn    = document.getElementById('migrerBtn');
-  const msg    = document.getElementById('migrerMsg');
-  const status = document.getElementById('migrationStatus');
-  btn.disabled = true;
-  let termine  = false;
-  let totalTraites = 0;
-
-  while (!termine) {
-    btn.textContent = `⏳ Migration en cours... (${totalTraites} migrés)`;
-    try {
-      const res  = await fetch('/api/admin/migrer_tebi', {method:'POST'});
-      const data = await res.json();
-      if(data.error) { msg.textContent = '❌ Erreur : ' + data.error; break; }
-      totalTraites += data.traites;
-      termine = data.termine;
-      status.textContent = `📊 ${data.restants} fichiers Supabase restants`;
-      msg.textContent = termine
-        ? `✅ Migration terminée ! ${totalTraites} fichiers migrés vers Tebi.`
-        : `⏳ ${totalTraites} migrés... ${data.restants} restants.`;
-    } catch(e) {
-      msg.textContent = '❌ Erreur réseau. Réessaie.';
-      break;
-    }
-  }
-
-  if(termine) {
-    status.textContent = '✅ Migration terminée — tous les fichiers sont sur Tebi !';
-    status.style.color = 'var(--success)';
-    btn.style.display  = 'none';
-  }
-  btn.disabled    = false;
-  btn.textContent = '⚡ Migrer vers Tebi (lot de 10)';
-}
-
 const anneeLabel = {'1a':'1ère année','2a':'2ème année','3a':'3ème année','4a':'4ème année','5a':'5ème année','6a':'6ème année'};
 const semLabel   = {'s1':'S1','s2':'S2'};
 const resLabel   = {'cours':'Cours','td':'TD','tp':'TP','resumes':'Résumés'};
@@ -568,7 +506,6 @@ async function login() {
     document.getElementById('adminPanel').style.display = 'block';
     updateModules();
     loadStats();
-    loadMigrationStatus();
   } else {
     document.getElementById('loginError').textContent = 'Mot de passe incorrect !';
   }
