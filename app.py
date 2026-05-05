@@ -106,6 +106,7 @@ def extraire_texte_depuis_url(url):
         print(f"Erreur téléchargement: {e}")
         return ''
 
+# ⚠️ FONCTION CORRIGÉE ⚠️
 def upload_to_tebi(file_bytes, object_path):
     try:
         client = get_tebi_client()
@@ -114,6 +115,7 @@ def upload_to_tebi(file_bytes, object_path):
             Key=object_path,
             Body=file_bytes,
             ContentType='application/pdf',
+            ContentLength=len(file_bytes),  # ← AJOUT OBLIGATOIRE
             ACL='public-read'
         )
         return f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
@@ -351,7 +353,9 @@ def migrer_tebi():
                 object_path = f"{f.annee}/{f.semestre}/{f.ressource}/{f.module}/{f.id}_{uuid.uuid4()}.pdf"
                 client.put_object(
                     Bucket=TEBI_BUCKET, Key=object_path,
-                    Body=r.content, ContentType='application/pdf', ACL='public-read'
+                    Body=r.content, ContentType='application/pdf',
+                    ContentLength=len(r.content),  # ← AJOUT OBLIGATOIRE
+                    ACL='public-read'
                 )
                 f.url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
                 db.session.commit()
