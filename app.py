@@ -10,8 +10,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import google.generativeai as genai
 import uuid
-import boto3
-from botocore.client import Config
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = 'vetmed_secret_2024'
@@ -25,15 +23,6 @@ TEBI_ACCESS_KEY = os.environ.get("TEBI_ACCESS_KEY")
 TEBI_SECRET_KEY = os.environ.get("TEBI_SECRET_KEY")
 TEBI_BUCKET     = os.environ.get("TEBI_BUCKET", "vetmed-files")
 TEBI_ENDPOINT   = os.environ.get("TEBI_ENDPOINT", "https://s3.tebi.io")
-
-def get_tebi_client():
-    return boto3.client(
-        's3',
-        endpoint_url=TEBI_ENDPOINT,
-        aws_access_key_id=TEBI_ACCESS_KEY,
-        aws_secret_access_key=TEBI_SECRET_KEY,
-        config=Config(signature_version='s3v4')
-    )
 
 ADMIN_PASSWORD     = "vetmed2024"
 GROQ_API_KEY       = os.environ.get("GROQ_API_KEY")
@@ -106,19 +95,25 @@ def extraire_texte_depuis_url(url):
         print(f"Erreur téléchargement: {e}")
         return ''
 
-# ⚠️ FONCTION CORRIGÉE ⚠️
+# ⚠️ NOUVELLE FONCTION UPLOAD (sans boto3, avec requests)
 def upload_to_tebi(file_bytes, object_path):
     try:
-        client = get_tebi_client()
-        client.put_object(
-            Bucket=TEBI_BUCKET,
-            Key=object_path,
-            Body=file_bytes,
-            ContentType='application/pdf',
-            ContentLength=len(file_bytes),  # ← AJOUT OBLIGATOIRE
-            ACL='public-read'
+        url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
+        response = requests.put(
+            url,
+            data=file_bytes,
+            headers={
+                'Content-Type': 'application/pdf',
+                'Content-Length': str(len(file_bytes))
+            },
+            timeout=60
         )
-        return f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
+        print(f"Upload Tebi response: {response.status_code}")
+        if response.status_code == 200:
+            return url
+        else:
+            print(f"Erreur HTTP {response.status_code}: {response.text[:200]}")
+            return None
     except Exception as e:
         print(f"Erreur upload Tebi: {e}")
         return None
@@ -211,12 +206,15 @@ def upload_fichier():
     file      = request.files.get('fichier')
     if not file:
         return jsonify({'error': 'Aucun fichier'}), 400
+    
     file_bytes  = file.read()
     texte       = extraire_texte(file_bytes)
     object_path = f"{annee}/{semestre}/{ressource}/{module}/{uuid.uuid4()}.pdf"
     public_url  = upload_to_tebi(file_bytes, object_path)
+    
     if not public_url:
         return jsonify({'error': "Échec de l'upload vers Tebi"}), 500
+    
     f = Fichier(
         annee=annee, semestre=semestre, ressource=ressource, module=module,
         nom=nom, url=public_url, texte=texte,
@@ -338,7 +336,6 @@ def migrer_tebi():
     if not session.get('admin'):
         return jsonify({'error': 'Non autorisé'}), 401
     try:
-        client   = get_tebi_client()
         fichiers = Fichier.query.filter(Fichier.url.like('%supabase%')).limit(10).all()
         if not fichiers:
             return jsonify({'success': True, 'traites': 0, 'restants': 0, 'termine': True})
@@ -351,15 +348,22 @@ def migrer_tebi():
                     echecs += 1
                     continue
                 object_path = f"{f.annee}/{f.semestre}/{f.ressource}/{f.module}/{f.id}_{uuid.uuid4()}.pdf"
-                client.put_object(
-                    Bucket=TEBI_BUCKET, Key=object_path,
-                    Body=r.content, ContentType='application/pdf',
-                    ContentLength=len(r.content),  # ← AJOUT OBLIGATOIRE
-                    ACL='public-read'
+                url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
+                response = requests.put(
+                    url,
+                    data=r.content,
+                    headers={
+                        'Content-Type': 'application/pdf',
+                        'Content-Length': str(len(r.content))
+                    },
+                    timeout=60
                 )
-                f.url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
-                db.session.commit()
-                traites += 1
+                if response.status_code == 200:
+                    f.url = url
+                    db.session.commit()
+                    traites += 1
+                else:
+                    echecs += 1
             except Exception as e:
                 print(f"Erreur migration fichier {f.id}: {e}")
                 echecs += 1
@@ -488,7 +492,6 @@ def chat():
 
     fichiers = Fichier.query.filter_by(annee=annee_specifique).all() if annee_specifique else Fichier.query.all()
 
-    # Commandes spéciales
     if question.startswith('/'):
         if question == '/help':
             return jsonify({'success': True, 'answer': "Commandes :\n/liste <annee> : modules d'une année\n/modules <annee> <semestre> : modules d'un semestre\n/recent : derniers fichiers\n/help : cette aide."})
