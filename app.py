@@ -18,11 +18,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Configuration Tebi.io
-TEBI_ACCESS_KEY = os.environ.get("TEBI_ACCESS_KEY")
-TEBI_SECRET_KEY = os.environ.get("TEBI_SECRET_KEY")
-TEBI_BUCKET     = os.environ.get("TEBI_BUCKET", "vetmed-files")
-TEBI_ENDPOINT   = os.environ.get("TEBI_ENDPOINT", "https://s3.tebi.io")
+# ── Configuration GitHub Releases ─────────────────
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+GITHUB_REPO  = "malaktamani/vetmed-portal"
+GITHUB_API   = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
+RELEASE_TAG  = "files"   # nom de la release qui contiendra tous les PDFs
 
 ADMIN_PASSWORD     = "vetmed2024"
 GROQ_API_KEY       = os.environ.get("GROQ_API_KEY")
@@ -32,7 +32,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
-# ── MODELS ─────────────────
+# ── MODELS (inchangés) ─────────────────
 class Fichier(db.Model):
     id            = db.Column(db.Integer, primary_key=True)
     annee         = db.Column(db.String(10))
@@ -95,30 +95,60 @@ def extraire_texte_depuis_url(url):
         print(f"Erreur téléchargement: {e}")
         return ''
 
-# ⚠️ NOUVELLE FONCTION UPLOAD (sans boto3, avec requests)
-def upload_to_tebi(file_bytes, object_path):
+# ── UPLOAD VERS GITHUB RELEASES ─────────────────
+def upload_to_github(file_bytes, filename):
+    """Upload un fichier dans la release 'files' du dépôt GitHub."""
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    # 1. Récupérer la release existante (ou la créer)
+    release_id = None
     try:
-        url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
-        response = requests.put(
-            url,
-            data=file_bytes,
-            headers={
-                'Content-Type': 'application/pdf',
-                'Content-Length': str(len(file_bytes))
-            },
-            timeout=60
-        )
-        print(f"Upload Tebi response: {response.status_code}")
-        if response.status_code == 200:
-            return url
-        else:
-            print(f"Erreur HTTP {response.status_code}: {response.text[:200]}")
-            return None
+        # Lister les releases
+        resp = requests.get(GITHUB_API, headers=headers)
+        if resp.status_code == 200:
+            for rel in resp.json():
+                if rel.get("tag_name") == RELEASE_TAG:
+                    release_id = rel["id"]
+                    break
+        # Créer la release si elle n'existe pas
+        if not release_id:
+            create_data = {
+                "tag_name": RELEASE_TAG,
+                "name": "Stockage des fichiers PDF",
+                "body": "Release automatique pour le stockage des cours",
+                "draft": False,
+                "prerelease": False
+            }
+            resp = requests.post(GITHUB_API, json=create_data, headers=headers)
+            if resp.status_code == 201:
+                release_id = resp.json()["id"]
+            else:
+                print(f"Erreur création release: {resp.status_code} {resp.text}")
+                return None
     except Exception as e:
-        print(f"Erreur upload Tebi: {e}")
+        print(f"Erreur récupération release: {e}")
         return None
 
-# ── SERVE HTML ─────────────────
+    if not release_id:
+        return None
+
+    # 2. Uploader le fichier en tant qu'asset de la release
+    upload_url = f"https://uploads.github.com/repos/{GITHUB_REPO}/releases/{release_id}/assets?name={filename}"
+    headers["Content-Type"] = "application/pdf"
+    try:
+        resp = requests.post(upload_url, data=file_bytes, headers=headers)
+        if resp.status_code == 201:
+            return resp.json()["browser_download_url"]
+        else:
+            print(f"Erreur upload asset: {resp.status_code} {resp.text}")
+            return None
+    except Exception as e:
+        print(f"Erreur upload GitHub: {e}")
+        return None
+
+# ── SERVE HTML (inchangé) ─────────────────
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -131,7 +161,7 @@ def admin():
 def chat_page():
     return send_from_directory('.', 'chat.html')
 
-# ── AUTH ─────────────────
+# ── AUTH (inchangé) ─────────────────
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
@@ -193,7 +223,7 @@ def me():
         return jsonify({'connecte': True, 'prenom': session.get('user_nom'), 'premium': session.get('user_premium', False)})
     return jsonify({'connecte': False})
 
-# ── UPLOAD / DELETE ─────────────────
+# ── UPLOAD (utilise GitHub) ─────────────────
 @app.route('/api/admin/upload', methods=['POST'])
 def upload_fichier():
     if not session.get('admin'):
@@ -206,15 +236,17 @@ def upload_fichier():
     file      = request.files.get('fichier')
     if not file:
         return jsonify({'error': 'Aucun fichier'}), 400
-    
-    file_bytes  = file.read()
-    texte       = extraire_texte(file_bytes)
-    object_path = f"{annee}/{semestre}/{ressource}/{module}/{uuid.uuid4()}.pdf"
-    public_url  = upload_to_tebi(file_bytes, object_path)
-    
+
+    file_bytes = file.read()
+    texte      = extraire_texte(file_bytes)
+
+    # Construire un nom de fichier unique pour GitHub
+    safe_name = f"{annee}_{semestre}_{ressource}_{module}_{uuid.uuid4().hex[:8]}.pdf"
+    public_url = upload_to_github(file_bytes, safe_name)
+
     if not public_url:
-        return jsonify({'error': "Échec de l'upload vers Tebi"}), 500
-    
+        return jsonify({'error': "Échec de l'upload vers GitHub Releases"}), 500
+
     f = Fichier(
         annee=annee, semestre=semestre, ressource=ressource, module=module,
         nom=nom, url=public_url, texte=texte,
@@ -224,6 +256,7 @@ def upload_fichier():
     db.session.commit()
     return jsonify({'success': True})
 
+# ── SUPPRESSION ─────────────────
 @app.route('/api/admin/delete/<int:id>', methods=['DELETE'])
 def delete_fichier(id):
     if not session.get('admin'):
@@ -234,7 +267,7 @@ def delete_fichier(id):
         db.session.commit()
     return jsonify({'success': True})
 
-# ── GET FICHIERS ─────────────────
+# ── GET FICHIERS (inchangé) ─────────────────
 @app.route('/api/fichiers')
 def get_fichiers():
     if not session.get('user_id') and not session.get('admin'):
@@ -264,7 +297,7 @@ def get_all_fichiers():
         'nom': f.nom, 'url': f.url, 'date_creation': f.date_creation or ''
     } for f in fichiers])
 
-# ── RECHERCHE ─────────────────
+# ── RECHERCHE (inchangé) ─────────────────
 @app.route('/api/recherche')
 def recherche():
     q = request.args.get('q', '').lower()
@@ -330,7 +363,7 @@ def maj_texte(id):
     db.session.commit()
     return jsonify({'success': True})
 
-# ── MIGRATION SUPABASE → TEBI ─────────────────
+# ── MIGRATION SUPABASE → GITHUB ─────────────────
 @app.route('/api/admin/migrer_tebi', methods=['POST'])
 def migrer_tebi():
     if not session.get('admin'):
@@ -347,19 +380,10 @@ def migrer_tebi():
                 if r.status_code != 200:
                     echecs += 1
                     continue
-                object_path = f"{f.annee}/{f.semestre}/{f.ressource}/{f.module}/{f.id}_{uuid.uuid4()}.pdf"
-                url = f"{TEBI_ENDPOINT}/{TEBI_BUCKET}/{object_path}"
-                response = requests.put(
-                    url,
-                    data=r.content,
-                    headers={
-                        'Content-Type': 'application/pdf',
-                        'Content-Length': str(len(r.content))
-                    },
-                    timeout=60
-                )
-                if response.status_code == 200:
-                    f.url = url
+                safe_name = f"{f.annee}_{f.semestre}_{f.ressource}_{f.module}_{f.id}.pdf"
+                new_url = upload_to_github(r.content, safe_name)
+                if new_url:
+                    f.url = new_url
                     db.session.commit()
                     traites += 1
                 else:
