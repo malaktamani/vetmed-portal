@@ -32,7 +32,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
-# ── MODELS (inchangés) ─────────────────
+# ── MODELS ─────────────────
 class Fichier(db.Model):
     id            = db.Column(db.Integer, primary_key=True)
     annee         = db.Column(db.String(10))
@@ -148,7 +148,7 @@ def upload_to_github(file_bytes, filename):
         print(f"Erreur upload GitHub: {e}")
         return None
 
-# ── SERVE HTML (inchangé) ─────────────────
+# ── SERVE HTML ─────────────────
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -161,7 +161,7 @@ def admin():
 def chat_page():
     return send_from_directory('.', 'chat.html')
 
-# ── AUTH (inchangé) ─────────────────
+# ── AUTH ─────────────────
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
@@ -223,7 +223,7 @@ def me():
         return jsonify({'connecte': True, 'prenom': session.get('user_nom'), 'premium': session.get('user_premium', False)})
     return jsonify({'connecte': False})
 
-# ── UPLOAD (utilise GitHub) ─────────────────
+# ── UPLOAD / DELETE ─────────────────
 @app.route('/api/admin/upload', methods=['POST'])
 def upload_fichier():
     if not session.get('admin'):
@@ -256,7 +256,6 @@ def upload_fichier():
     db.session.commit()
     return jsonify({'success': True})
 
-# ── SUPPRESSION ─────────────────
 @app.route('/api/admin/delete/<int:id>', methods=['DELETE'])
 def delete_fichier(id):
     if not session.get('admin'):
@@ -267,7 +266,7 @@ def delete_fichier(id):
         db.session.commit()
     return jsonify({'success': True})
 
-# ── GET FICHIERS (inchangé) ─────────────────
+# ── GET FICHIERS ─────────────────
 @app.route('/api/fichiers')
 def get_fichiers():
     if not session.get('user_id') and not session.get('admin'):
@@ -297,7 +296,7 @@ def get_all_fichiers():
         'nom': f.nom, 'url': f.url, 'date_creation': f.date_creation or ''
     } for f in fichiers])
 
-# ── RECHERCHE (inchangé) ─────────────────
+# ── RECHERCHE ─────────────────
 @app.route('/api/recherche')
 def recherche():
     q = request.args.get('q', '').lower()
@@ -362,6 +361,19 @@ def maj_texte(id):
     f.texte = data.get('texte', '').replace('\x00', '')
     db.session.commit()
     return jsonify({'success': True})
+
+# ── RÉPARATION AUTO DE LA SÉQUENCE ─────────────────
+@app.route('/api/admin/fix_sequence', methods=['POST'])
+def fix_sequence():
+    if not session.get('admin'):
+        return jsonify({'error': 'Non autorisé'}), 401
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text("SELECT setval('fichier_id_seq', (SELECT MAX(id) FROM fichier))"))
+            conn.commit()
+        return jsonify({'success': True, 'message': 'Séquence réparée'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ── MIGRATION SUPABASE → GITHUB ─────────────────
 @app.route('/api/admin/migrer_tebi', methods=['POST'])
@@ -629,7 +641,7 @@ def get_activite_utilisateur(id):
         'consultations': [{'id': f.id, 'nom': f.nom, 'date': c.date_consultation} for c, f in zip(cons, fichiers_con)]
     })
 
-# ── INIT DB ─────────────────
+# ── INIT DB (avec correction automatique de la séquence) ─────────────────
 with app.app_context():
     db.create_all()
     for col_sql in [
@@ -642,6 +654,13 @@ with app.app_context():
                 conn.commit()
         except:
             pass
+    # Réparer la séquence si nécessaire
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text("SELECT setval('fichier_id_seq', (SELECT MAX(id) FROM fichier))"))
+            conn.commit()
+    except Exception as e:
+        print(f"Avertissement séquence: {e}")
 
 if __name__ == '__main__':
     with app.app_context():
