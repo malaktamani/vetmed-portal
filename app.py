@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import google.generativeai as genai
 import uuid
+import json   # ajout pour import_mapping
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = 'vetmed_secret_2024'
@@ -375,46 +376,65 @@ def fix_sequence():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ── MIGRATION SUPABASE → GITHUB ─────────────────
-@app.route('/api/admin/migrer_tebi', methods=['POST'])
-def migrer_tebi():
+# ── IMPORT MAPPING (après upload local) ─────────────────
+@app.route('/api/admin/import_mapping', methods=['POST'])
+def import_mapping():
     if not session.get('admin'):
         return jsonify({'error': 'Non autorisé'}), 401
-    try:
-        fichiers = Fichier.query.filter(Fichier.url.like('%supabase%')).limit(10).all()
-        if not fichiers:
-            return jsonify({'success': True, 'traites': 0, 'restants': 0, 'termine': True})
-        traites = 0
-        echecs  = 0
-        for f in fichiers:
-            try:
-                r = requests.get(f.url, timeout=30)
-                if r.status_code != 200:
-                    echecs += 1
-                    continue
-                safe_name = f"{f.annee}_{f.semestre}_{f.ressource}_{f.module}_{f.id}.pdf"
-                new_url = upload_to_github(r.content, safe_name)
-                if new_url:
-                    f.url = new_url
-                    db.session.commit()
-                    traites += 1
-                else:
-                    echecs += 1
-            except Exception as e:
-                print(f"Erreur migration fichier {f.id}: {e}")
-                echecs += 1
-        restants = Fichier.query.filter(Fichier.url.like('%supabase%')).count()
-        return jsonify({'success': True, 'traites': traites, 'echecs': echecs, 'restants': restants, 'termine': restants == 0})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/migration_status')
-def migration_status():
-    if not session.get('admin'):
-        return jsonify({'error': 'Non autorisé'}), 401
-    restants = Fichier.query.filter(Fichier.url.like('%supabase%')).count()
-    total    = Fichier.query.count()
-    return jsonify({'restants': restants, 'total': total, 'termine': restants == 0})
+    mapping_file = 'mapping_github.json'
+    if not os.path.exists(mapping_file):
+        return jsonify({'error': f"Fichier {mapping_file} introuvable sur le serveur"}), 400
+
+    try:
+        with open(mapping_file, 'r', encoding='utf-8') as f:
+            mapping = json.load(f)
+    except Exception as e:
+        return jsonify({'error': f'Erreur lecture JSON: {str(e)}'}), 500
+
+    mis_a_jour = 0
+    non_trouves = 0
+    erreurs = 0
+
+    for entree in mapping:
+        nom = entree.get('nom', '').strip()
+        annee = entree.get('annee', '').strip()
+        semestre = entree.get('semestre', '').strip()
+        ressource = entree.get('ressource', '').strip()
+        module = entree.get('module', '').strip()
+        nouvelle_url = entree.get('url', '').strip()
+
+        if not all([nom, annee, semestre, ressource, module, nouvelle_url]):
+            erreurs += 1
+            continue
+
+        fichier = Fichier.query.filter_by(
+            annee=annee,
+            semestre=semestre,
+            ressource=ressource,
+            module=module,
+            nom=nom
+        ).first()
+
+        if fichier:
+            fichier.url = nouvelle_url
+            mis_a_jour += 1
+        else:
+            non_trouves += 1
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Erreur commit: {str(e)}'}), 500
+
+    return jsonify({
+        'success': True,
+        'total': len(mapping),
+        'mis_a_jour': mis_a_jour,
+        'non_trouves': non_trouves,
+        'erreurs_format': erreurs
+    })
 
 # ── FAVORIS ─────────────────
 @app.route('/api/favoris', methods=['GET'])
